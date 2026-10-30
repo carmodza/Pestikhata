@@ -293,16 +293,31 @@ class EntryDirectionIcon extends StatelessWidget {
   }
 }
 
+String entryTitle(
+  BuildContext context,
+  ShopSnapshot data,
+  JournalEntry entry,
+) => entry.title.isNotEmpty
+    ? entry.title
+    : data.productName(entry.itemId).isNotEmpty
+    ? data.productName(entry.itemId)
+    : context.tr(entry.kind.name);
+
+String entryQuantity(BuildContext context, JournalEntry entry) =>
+    '${entry.quantity.toString().replaceFirst(RegExp(r'\.0$'), '')} ${context.tr(entry.unit)}${entry.isTransfer ? '' : ' × ${entry.ratePending ? context.tr('ratePending') : context.money(entry.ratePaise)}'}';
+
 class EntryTile extends StatelessWidget {
   const EntryTile({
     super.key,
     required this.entry,
     required this.data,
     this.onTap,
+    this.remainingPaise,
   });
   final JournalEntry entry;
   final ShopSnapshot data;
   final VoidCallback? onTap;
+  final int? remainingPaise;
   @override
   Widget build(BuildContext context) {
     return ListTile(
@@ -310,13 +325,33 @@ class EntryTile extends StatelessWidget {
       contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
       leading: EntryDirectionIcon(entry: entry),
       title: Text(
-        entry.title.isEmpty ? context.tr(entry.kind.name) : entry.title,
+        entryTitle(context, data, entry),
         style: TextStyle(
           decoration: entry.voided ? TextDecoration.lineThrough : null,
         ),
       ),
-      subtitle: Text(
-        '${endpointLabel(context, data, entry.source)} → ${endpointLabel(context, data, entry.destination)}\n${context.day(entry.date)}',
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (entry.hasStock &&
+              data.productName(entry.itemId).isNotEmpty &&
+              entryTitle(context, data, entry) !=
+                  data.productName(entry.itemId))
+            Text(data.productName(entry.itemId)),
+          if (entry.isRateBearing)
+            Text(
+              entryQuantity(context, entry),
+              style: context.fonts.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          Text(
+            '${endpointLabel(context, data, entry.source)} → ${endpointLabel(context, data, entry.destination)}',
+          ),
+          Text(context.day(entry.date)),
+          if (entry.note.isNotEmpty)
+            Text(entry.note, maxLines: 2, overflow: TextOverflow.ellipsis),
+        ],
       ),
       isThreeLine: true,
       trailing: Column(
@@ -324,7 +359,9 @@ class EntryTile extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Text(
-            entry.ratePending
+            remainingPaise != null
+                ? context.money(remainingPaise!)
+                : entry.ratePending
                 ? context.tr('ratePending')
                 : context.money(entry.totalPaise),
             style: TextStyle(
@@ -332,7 +369,9 @@ class EntryTile extends StatelessWidget {
               color: entry.ratePending ? Colors.orange.shade800 : null,
             ),
           ),
-          if (entry.creditPaise != 0)
+          if (remainingPaise != null)
+            Text(context.tr('remaining'), style: context.fonts.bodySmall),
+          if (remainingPaise == null && entry.creditPaise != 0)
             Text(
               '${context.tr('udhar')} ${context.money(entry.creditPaise)}',
               style: context.fonts.bodySmall,

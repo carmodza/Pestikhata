@@ -9,6 +9,33 @@ class AppLocalizationsUr extends AppLocalizations {
   AppLocalizationsUr([String locale = 'ur']) : super(locale);
 
   @override
+  String get cropRates => 'Fasal ke khareed aur farokht rates';
+
+  @override
+  String get pendingToReceive => 'Baqi wasooli';
+
+  @override
+  String get pendingToPay => 'Baqi adaigi';
+
+  @override
+  String get outstanding => 'Baqi balance';
+
+  @override
+  String get remaining => 'Baqi';
+
+  @override
+  String get noPendingPayments =>
+      'Is taraf koi qeemat wala bhugtan baqi nahin.';
+
+  @override
+  String get paymentAllocationHelp =>
+      'Raqam pehlay purani baqi adaigion mein lagti hai.';
+
+  @override
+  String get pendingPaymentRatesHelp =>
+      'Kuch entries ke rates baqi hain. Advance balance mein shamil hai; aakhri baqaya badal sakta hai.';
+
+  @override
   String get automaticBatch => 'Batch (khud banay ga)';
 
   @override
@@ -201,7 +228,7 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get rateLaterHelp =>
-      'Stock abhi badlay ga. Rate laganay par khata mukammal hoga.';
+      'Ab save karein. Baad mein rate laganay par kul raqam aur khata update hoga.';
 
   @override
   String get ratePending => 'Rate baqi hai';
@@ -840,7 +867,7 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get invalidRatePending =>
-      'Sirf maal aur fasal ka rate baqi reh sakta hai.';
+      'Sirf maal, fasal aur diesel ka rate baqi reh sakta hai.';
 
   @override
   String get invalidExpense =>

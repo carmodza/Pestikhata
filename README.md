@@ -26,6 +26,10 @@ Select **Try local demo**, then **Seed demo data** on Home. Settings contains th
 
 ## Main flows
 
+Crop entries show both purchase and sale rates. Editing the applicable price updates the billed rate, which can still be overridden. **Rate later** is available on priced product, crop and diesel entries, including direct trades. Cash and ordinary expenses remain amount-based.
+
+Tap a Farmer, Supplier or Godam source/destination chip to open its list immediately. Person lists include **Add new**. **Give payment** and **Receive payment** show the selected person's outstanding balance and pending bills; the amount is left blank. Payments settle the oldest open amounts first. Entries and exported ledgers include product/crop, quantity, unit and rate.
+
 The internal shop location is labelled **Shop**. Incoming product stock receives an automatic batch number and an optional expiry date. Sales and godam transfers select stock automatically across available lots; no manual batch selection is required.
 
 Direct entries between recorded people (for example Supplier → Farmer) update both khatas without moving Shop/Godam stock. Entered cash is received and paid onward through Shop, appearing in both cash-in and cash-out with no net cash change. These direct pass-through trades do not add shop profit. Entry icons show incoming movements in green, outgoing movements in red and direct entries in blue.

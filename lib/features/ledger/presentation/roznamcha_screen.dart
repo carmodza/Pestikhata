@@ -41,7 +41,7 @@ class _RoznamchaScreenState extends ConsumerState<RoznamchaScreen> {
           (e) => [
             context.day(e.date),
             context.tr(e.kind.name),
-            e.title,
+            '${entryTitle(context, data, e)}${e.isRateBearing ? '\n${entryQuantity(context, e)}' : ''}',
             endpointLabel(context, data, e.source),
             endpointLabel(context, data, e.destination),
             e.ratePending

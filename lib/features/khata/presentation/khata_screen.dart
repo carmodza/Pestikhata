@@ -118,7 +118,7 @@ class PersonScreen extends ConsumerWidget {
         final e = movement.entry;
         return [
           context.day(e.date),
-          e.title.isEmpty ? context.tr(e.kind.name) : e.title,
+          '${entryTitle(context, data, e)}${e.isRateBearing ? '\n${entryQuantity(context, e)}' : ''}',
           e.ratePending
               ? '${context.tr('ratePending')} (${context.money(movement.delta)})'
               : context.money(movement.delta),

@@ -29,7 +29,7 @@ class EntryDetailScreen extends ConsumerWidget {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        e.title.isEmpty ? context.tr(e.kind.name) : e.title,
+                        entryTitle(context, data, e),
                         style: context.fonts.headlineSmall,
                       ),
                     ),
@@ -40,16 +40,28 @@ class EntryDetailScreen extends ConsumerWidget {
                   ('date', context.day(e.date)),
                   ('source', endpointLabel(context, data, e.source)),
                   ('destination', endpointLabel(context, data, e.destination)),
-                  if (e.kind != EntryKind.cash && e.kind != EntryKind.other)
+                  if (e.hasStock)
+                    (
+                      'productName',
+                      data.productName(e.itemId).isEmpty
+                          ? e.title
+                          : data.productName(e.itemId),
+                    ),
+                  if (e.isRateBearing)
                     ('quantity', '${e.quantity} ${context.tr(e.unit)}'),
                   if (e.batch.isNotEmpty) ('batch', e.batch),
                   if (e.expiry != null) ('expiryDate', context.day(e.expiry!)),
-                  (
-                    'rate',
-                    e.ratePending
-                        ? context.tr('ratePending')
-                        : context.money(e.ratePaise),
-                  ),
+                  if (e.isRateBearing)
+                    (
+                      'rate',
+                      e.ratePending
+                          ? context.tr('ratePending')
+                          : context.money(e.ratePaise),
+                    ),
+                  if (e.hasStock && !e.isTransfer)
+                    ('purchasePrice', context.money(e.purchasePaise)),
+                  if (e.hasStock && !e.isTransfer)
+                    ('salePrice', context.money(e.salePaise)),
                   (
                     'total',
                     e.ratePending
@@ -89,7 +101,7 @@ class EntryDetailScreen extends ConsumerWidget {
             ),
           ),
           if (e.isDirect) Text(context.tr('directEntryHelp')),
-          if (e.hasStock &&
+          if (e.isRateBearing &&
               !e.isTransfer &&
               !e.voided &&
               (e.ratePending ||

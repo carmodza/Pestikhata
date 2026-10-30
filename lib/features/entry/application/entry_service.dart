@@ -26,6 +26,10 @@ class EntryInput {
   bool get receivingProduct =>
       kind == EntryKind.product && !source.internal && destination.internal;
   bool get salePricing => source.internal || isDirect;
+  bool get isRateBearing =>
+      kind == EntryKind.product ||
+      kind == EntryKind.crop ||
+      kind == EntryKind.diesel;
 }
 
 class EntryService {
@@ -94,5 +98,27 @@ class EntryService {
     input.purchase = moneyInput(multiplyMoney(factor, product.purchasePaise));
     input.sale = moneyInput(multiplyMoney(factor, product.salePaise));
     input.rate = input.salePricing ? input.sale : input.purchase;
+  }
+
+  static void editPrice(EntryInput input, String field, String value) {
+    if (field == 'purchase') input.purchase = value;
+    if (field == 'sale') input.sale = value;
+    if ((field == 'sale' && input.salePricing) ||
+        (field == 'purchase' && !input.salePricing)) {
+      input.rate = value;
+    }
+  }
+
+  static void selectPaymentPerson(
+    EntryInput input,
+    Person person,
+    bool receiving,
+  ) {
+    input.source = receiving
+        ? Endpoint(person.kind, person.id)
+        : const Endpoint(PartyKind.inventory);
+    input.destination = receiving
+        ? const Endpoint(PartyKind.inventory)
+        : Endpoint(person.kind, person.id);
   }
 }

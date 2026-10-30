@@ -282,9 +282,11 @@ Future<T?> searchPick<T>(
   required String title,
   required List<T> items,
   required String Function(T) label,
+  Future<T?> Function()? onAdd,
 }) => showDialog<T>(
   context: context,
-  builder: (_) => _SearchPicker<T>(title: title, items: items, label: label),
+  builder: (_) =>
+      _SearchPicker<T>(title: title, items: items, label: label, onAdd: onAdd),
 );
 
 class _SearchPicker<T> extends StatefulWidget {
@@ -292,10 +294,12 @@ class _SearchPicker<T> extends StatefulWidget {
     required this.title,
     required this.items,
     required this.label,
+    this.onAdd,
   });
   final String title;
   final List<T> items;
   final String Function(T) label;
+  final Future<T?> Function()? onAdd;
   @override
   State<_SearchPicker<T>> createState() => _SearchPickerState<T>();
 }
@@ -340,6 +344,17 @@ class _SearchPickerState<T> extends State<_SearchPicker<T>> {
         ),
       ),
       actions: [
+        if (widget.onAdd != null)
+          TextButton.icon(
+            icon: const Icon(Icons.add),
+            label: Text(context.tr('addNew')),
+            onPressed: () async {
+              final value = await widget.onAdd!();
+              if (value != null && context.mounted) {
+                Navigator.pop(context, value);
+              }
+            },
+          ),
         TextButton(
           onPressed: () => Navigator.pop(context),
           child: Text(context.tr('cancel')),

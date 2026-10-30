@@ -5,6 +5,14 @@ extension AppStrings on BuildContext {
   String tr(String key) {
     final l = AppLocalizations.of(this)!;
     return switch (key) {
+      'cropRates' => l.cropRates,
+      'pendingToReceive' => l.pendingToReceive,
+      'pendingToPay' => l.pendingToPay,
+      'outstanding' => l.outstanding,
+      'remaining' => l.remaining,
+      'noPendingPayments' => l.noPendingPayments,
+      'paymentAllocationHelp' => l.paymentAllocationHelp,
+      'pendingPaymentRatesHelp' => l.pendingPaymentRatesHelp,
       'automaticBatch' => l.automaticBatch,
       'automaticBatchHelp' => l.automaticBatchHelp,
       'addExpiryOptional' => l.addExpiryOptional,

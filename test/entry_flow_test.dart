@@ -142,11 +142,9 @@ void main() {
       await openProduct();
       await tester.tap(find.text('Supplier').first);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Shop').last);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Search / select a person'));
-      await tester.pumpAndSettle();
       await tester.tap(find.textContaining('Agri Supply Co.').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Shop').last);
       await tester.pumpAndSettle();
       await selectItem();
       expect(find.text('Batch (automatic)'), findsOneWidget);
@@ -164,11 +162,9 @@ void main() {
       await openProduct();
       await tester.tap(find.text('Supplier').first);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Search / select a person').first);
-      await tester.pumpAndSettle();
       await tester.tap(find.textContaining('Agri Supply Co.').last);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Search / select a person').last);
+      await tester.tap(find.text('Farmer').last);
       await tester.pumpAndSettle();
       await tester.tap(find.textContaining('Muhammad Ali').last);
       await tester.pumpAndSettle();
@@ -198,6 +194,27 @@ void main() {
       expect(
         direct.ledger.personBalance('supplier-agri'),
         received.ledger.personBalance('supplier-agri') - 720000,
+      );
+      await tester.tap(find.text('Khata'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Muhammad Ali'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Receive payment'));
+      await tester.pumpAndSettle();
+      expect(find.text('Pending receipts'), findsOneWidget);
+      expect(find.text('Remaining'), findsWidgets);
+      expect(value('Amount (Rs)'), isEmpty);
+      await tester.scrollUntilVisible(
+        field('Amount (Rs)'),
+        300,
+        scrollable: vertical,
+      );
+      await tester.enterText(field('Amount (Rs)'), '100');
+      await save();
+      final paid = await repo.snapshot();
+      expect(
+        paid.ledger.personBalance('farmer-ali'),
+        direct.ledger.personBalance('farmer-ali') - 10000,
       );
       expect(tester.takeException(), isNull);
       await db.close();

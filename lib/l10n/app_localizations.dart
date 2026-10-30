@@ -98,6 +98,54 @@ abstract class AppLocalizations {
     Locale('ur'),
   ];
 
+  /// No description provided for @cropRates.
+  ///
+  /// In en, this message translates to:
+  /// **'Crop purchase & sale rates'**
+  String get cropRates;
+
+  /// No description provided for @pendingToReceive.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending receipts'**
+  String get pendingToReceive;
+
+  /// No description provided for @pendingToPay.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending payments'**
+  String get pendingToPay;
+
+  /// No description provided for @outstanding.
+  ///
+  /// In en, this message translates to:
+  /// **'Outstanding balance'**
+  String get outstanding;
+
+  /// No description provided for @remaining.
+  ///
+  /// In en, this message translates to:
+  /// **'Remaining'**
+  String get remaining;
+
+  /// No description provided for @noPendingPayments.
+  ///
+  /// In en, this message translates to:
+  /// **'No priced payments pending in this direction.'**
+  String get noPendingPayments;
+
+  /// No description provided for @paymentAllocationHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Payments settle the oldest outstanding amounts first.'**
+  String get paymentAllocationHelp;
+
+  /// No description provided for @pendingPaymentRatesHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Some entry rates are still pending. Advances are included in the balance; final dues may change.'**
+  String get pendingPaymentRatesHelp;
+
   /// No description provided for @automaticBatch.
   ///
   /// In en, this message translates to:
@@ -473,7 +521,7 @@ abstract class AppLocalizations {
   /// No description provided for @rateLaterHelp.
   ///
   /// In en, this message translates to:
-  /// **'Stock moves now. Final khata updates when the rate is set.'**
+  /// **'Save now. Set the entry rate later to update totals and khata.'**
   String get rateLaterHelp;
 
   /// No description provided for @ratePending.
@@ -1685,7 +1733,7 @@ abstract class AppLocalizations {
   /// No description provided for @invalidRatePending.
   ///
   /// In en, this message translates to:
-  /// **'Only product and crop entries can have pending rates.'**
+  /// **'Only product, crop and diesel entries can have pending rates.'**
   String get invalidRatePending;
 
   /// No description provided for @invalidExpense.

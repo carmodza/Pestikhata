@@ -40,7 +40,7 @@ service cloud.firestore {
         p.unitFactor is number && p.unitFactor > 0 && p.unitFactor <= 1000000000 &&
         money(p.ratePaise) && money(p.purchasePaise) && money(p.salePaise) && money(p.cashPaise) && money(p.amountPaise) &&
         (p.ratePending || p.cashPaise <= total + tolerance) && total <= 9000000000000 &&
-        (!p.ratePending || p.kind in ['product','crop']) &&
+        (!p.ratePending || p.kind in ['product','crop','diesel']) &&
         (!transfer || p.kind in ['product','crop'] && p.cashPaise == 0 && !p.ratePending) &&
         (p.kind != 'cash' || p.amountPaise > 0 && p.cashPaise == 0) &&
         (p.kind != 'other' || (internal(p.source) || person(p.source) && person(p.destination)) && p.title.size() > 0 && p.amountPaise > 0 && p.cashPaise == p.amountPaise) &&

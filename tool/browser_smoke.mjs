@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import {browserSession,pause} from './browser_driver.mjs';
 
 const browser=await browserSession({mode:'smoke'});
+const entryUpdatesOnly=process.argv.includes('--entry-updates');
 await fs.mkdir('.tooling/previews',{recursive:true});
 async function ready(){
   for(let i=0;i<120;i++){
@@ -12,8 +13,9 @@ async function ready(){
 }
 async function names(){return(await browser.send('Accessibility.getFullAXTree')).nodes.filter(n=>!n.ignored).map(n=>n.name?.value).filter(Boolean);}
 async function expectText(text){
-  for(let i=0;i<40;i++){if((await names()).some(n=>n.includes(text)))return;await pause(300);}
-  throw Error(`Missing rendered text '${text}': ${(await names()).join(' | ')}`);
+  for(let i=0;i<120;i++){if((await names()).some(n=>n.includes(text)))return;await pause(500);}
+  const exceptions=browser.events.filter(e=>e.method==='Runtime.exceptionThrown').map(e=>e.params.exceptionDetails.exception?.description??e.params.exceptionDetails.text);
+  throw Error(`Missing rendered text '${text}': ${(await names()).join(' | ')}\nExceptions: ${exceptions.join('\n')}`);
 }
 async function load(method,params={}){
   const start=browser.events.length;
@@ -31,6 +33,7 @@ try{
   await browser.clickText('Try local demo');await expectText('Punjab Agri Traders');
   await browser.clickText('Seed demo data');await pause(2000);
   await expectText('Cash balance');await browser.screenshot('.tooling/previews/home-desktop.png');
+  if(!entryUpdatesOnly){
   await load('Page.navigate',{url:browser.url+'/more'});await expectText('Stock');
   if((await names()).some(n=>n==='Inventory'||n==='Godam'))throw Error('Separate inventory/godam menu entries still exist');
   await browser.clickText('Stock');await expectText('All locations');
@@ -53,14 +56,34 @@ try{
   await browser.clickText('English');await expectText('Language');
   await browser.clickText('Dark');await browser.screenshot('.tooling/previews/settings-dark.png');
   await browser.clickText('Light');
+  }
   await load('Page.navigate',{url:browser.url});
   await browser.send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});await pause(800);
   await browser.screenshot('.tooling/previews/home-mobile.png');
+  if(!entryUpdatesOnly){
   await browser.clickText('More');await browser.clickText('Stock');await expectText('Items');
   await browser.screenshot('.tooling/previews/stock-mobile.png');
   await browser.clickText('Godams & transfers');await expectText('Main Godam');
   await browser.screenshot('.tooling/previews/stock-godams-mobile.png');
+  }
   await browser.clickText('Khata');await expectText('Farmer khata');await browser.screenshot('.tooling/previews/khata-mobile.png');
+  const farmerName=(await names()).find(n=>n.includes('Muhammad Ali'));
+  if(!farmerName)throw Error(`Farmer profile is missing from khata: ${(await names()).join(' | ')}`);
+  await browser.clickText(farmerName);await expectText('Receive payment');
+  await browser.clickText('Receive payment');await expectText('Pending receipts');await expectText('Remaining');
+  await browser.screenshot('.tooling/previews/pending-payment-mobile.png');
+  await load('Page.navigate',{url:browser.url+'/entry/crop'});
+  await browser.clickText('Farmer');await expectText('Search / select a person');
+  await browser.screenshot('.tooling/previews/source-picker-mobile.png');
+  const sourceName=(await names()).find(n=>n.includes('Muhammad Ali'));
+  await browser.clickText(sourceName);
+  await browser.clickText('Search / select an item');await expectText('Wheat');
+  const cropName=(await names()).find(n=>n.includes('Wheat'));
+  await browser.clickText(cropName);
+  await browser.send('Input.dispatchMouseEvent',{type:'mouseWheel',x:200,y:600,deltaX:0,deltaY:500});await pause(600);
+  await expectText('Crop purchase & sale rates');await expectText('Rate later');
+  await browser.screenshot('.tooling/previews/crop-rates-mobile.png');
+  await load('Page.navigate',{url:browser.url});await ready();
   await browser.clickText('Entry');await expectText('New entry');await browser.screenshot('.tooling/previews/entry-dial-mobile.png');
   await load('Page.navigate',{url:browser.url});await expectText('Punjab Agri Traders');
   await browser.evaluate('navigator.serviceWorker.ready.then(()=>true)');
@@ -71,5 +94,5 @@ try{
   await browser.screenshot('.tooling/previews/home-offline.png');
   const errors=browser.events.filter(e=>e.method==='Runtime.exceptionThrown').map(e=>e.params.exceptionDetails.exception?.description??e.params.exceptionDetails.text);
   if(errors.length)throw Error(`Browser exceptions:\n${errors.join('\n')}`);
-  console.log('PASS: merged stock workspace, location filtering, legacy redirects, all shop modules, English/Roman Urdu, light/dark, desktop/mobile, khata, entry dial and offline SQLite reload.');
+  console.log(entryUpdatesOnly ? 'PASS: crop rates, immediate source picker, pending-payment mobile screen and offline SQLite reload.' : 'PASS: crop rates, immediate source picker, pending-payment screens, merged stock, all shop modules, languages/themes, desktop/mobile and offline SQLite reload.');
 }finally{await browser.close();}

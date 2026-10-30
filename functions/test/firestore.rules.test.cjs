@@ -141,3 +141,14 @@ test('rules: receipt expiry is optional and allocated stock is immutable',{skip:
   await assertSucceeds(setDoc(ref,sale));
   await assertFails(setDoc(ref,{...sale,updatedAt:sale.updatedAt+1000,payload:{...sale.payload,allocations:[{batch:'CHANGED',expiry:null,quantity:1}]}}));
 });
+test('rules: diesel can have a pending rate and staff can complete it',{skip:!enabled},async()=>{
+  await prepareRateEntry('diesel-fixture');
+  await env.withSecurityRulesDisabled(async ctx=>{
+    await setDoc(doc(ctx.firestore(),'shops/a/records/people_diesel-supplier'),{payload:{id:'diesel-supplier',kind:'supplier'}});
+  });
+  const value=cropEntry('diesel-rate',true);
+  value.payload={...value.payload,kind:'diesel',itemId:null,quantity:10,unit:'liter',destination:{kind:'supplier',id:'diesel-supplier'},cashPaise:50000};
+  const ref=doc(env.authenticatedContext('staff').firestore(),'shops/a/records/entries_diesel-rate');
+  await assertSucceeds(setDoc(ref,value));
+  await assertSucceeds(setDoc(ref,{...value,updatedAt:value.updatedAt+1000,payload:{...value.payload,ratePending:false,ratePaise:25000}}));
+});

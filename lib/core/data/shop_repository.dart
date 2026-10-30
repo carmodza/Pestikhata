@@ -179,7 +179,10 @@ class ShopRepository {
   Future<void> resolveRate(String id, int rate) => db.transaction(() async {
     final data = await snapshot();
     final entry = data.entries.where((e) => e.id == id).firstOrNull;
-    if (entry == null || !entry.hasStock || entry.isTransfer || entry.voided) {
+    if (entry == null ||
+        !entry.isRateBearing ||
+        entry.isTransfer ||
+        entry.voided) {
       throw const DomainFailure('entryImmutable');
     }
     if (!entry.ratePending) requireOwner();

@@ -189,6 +189,7 @@ class JournalEntry {
   final bool ratePending, voided;
   final List<StockAllocation> allocations;
   bool get hasStock => kind == EntryKind.product || kind == EntryKind.crop;
+  bool get isRateBearing => hasStock || kind == EntryKind.diesel;
   bool get isTransfer => source.internal && destination.internal;
   bool get isDirect => source.person && destination.person;
   bool get isStockReceipt =>

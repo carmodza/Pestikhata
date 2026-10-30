@@ -6,6 +6,8 @@ Shop and godam stock are available under **More → Stock**. Use **Items** to se
 
 The shop location is now named **Shop**. Batch numbers are automatic, with optional expiry controls shown only on incoming product stock. Sales and transfers select stock automatically. Direct entries between two people update both khatas, with cash received and paid onward through Shop. Icons are green for in, red for out and blue for direct entries.
 
+Crop entries include purchase and sale rates. **Rate later** is available for product, crop and diesel entries throughout the app. Source/destination chips open their person/godam lists directly. Give/Receive Payment shows pending bills with a blank amount; entry lists and statements include quantities and rates.
+
 Use Flutter stable 3.47.8, Dart 3.13.7, Node 22 and Git. Run commands from the project root:
 
 ```powershell

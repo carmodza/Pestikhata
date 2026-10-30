@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pestikhata/core/data/shop_repository.dart';
 import 'package:pestikhata/core/database/app_database.dart';
 import 'package:pestikhata/core/domain/models.dart';
+import 'package:pestikhata/features/entry/application/entry_service.dart';
 import 'package:pestikhata/features/reports/application/report_service.dart';
 
 void main() {
@@ -60,6 +61,106 @@ void main() {
     await repo.saveGodam(const Godam(id: 'g', name: 'Main'));
   });
   tearDown(() async => db.close());
+
+  test('cash and ordinary expenses remain fixed-amount entries', () async {
+    for (final kind in [EntryKind.cash, EntryKind.other]) {
+      final entry = JournalEntry(
+        id: kind.name,
+        kind: kind,
+        source: kind == EntryKind.cash ? farmer : shop,
+        destination: kind == EntryKind.cash
+            ? shop
+            : const Endpoint(PartyKind.walkIn),
+        date: date,
+        title: 'Payment',
+        amountPaise: 10000,
+        cashPaise: kind == EntryKind.other ? 10000 : 0,
+        ratePending: true,
+      );
+      await expectLater(
+        repo.saveEntry(entry),
+        throwsA(
+          isA<DomainFailure>().having(
+            (e) => e.code,
+            'code',
+            'invalidRatePending',
+          ),
+        ),
+      );
+    }
+  });
+
+  test(
+    'crop sale and purchase prices preserve entry units and update only the applicable billed rate',
+    () {
+      const crop = Product(
+        id: 'crop',
+        name: 'Wheat',
+        kind: EntryKind.crop,
+        baseUnit: 'kg',
+        units: {'kg': 1, 'maan': 40},
+        purchasePaise: 7200,
+        salePaise: 8000,
+      );
+      final input = EntryInput()
+        ..kind = EntryKind.crop
+        ..quantity = '2';
+      EntryService.selectProduct(input, crop);
+      input.unit = 'maan';
+      EntryService.applyUnit(input);
+      expect(input.rate, '3200.00');
+      EntryService.editPrice(input, 'sale', '3300.50');
+      EntryService.editPrice(input, 'purchase', '2999.25');
+      final preview = EntryService.preview(input);
+      expect(preview.totalPaise, 660100);
+      expect(preview.purchasePaise, 299925);
+      expect(preview.salePaise, 330050);
+      expect(preview.baseQuantity, 80);
+      input.ratePending = true;
+      expect(EntryService.preview(input).totalPaise, 0);
+    },
+  );
+
+  test(
+    'diesel rate later preserves cash advance and becomes a priced supplier expense',
+    () async {
+      await repo.saveEntry(
+        JournalEntry(
+          id: 'diesel-pending',
+          kind: EntryKind.diesel,
+          source: shop,
+          destination: supplier,
+          date: date,
+          quantity: 10,
+          unit: 'liter',
+          cashPaise: 50000,
+          ratePending: true,
+        ),
+      );
+      var data = await repo.snapshot();
+      expect(data.ledger.cashBalance(), -50000);
+      expect(data.ledger.expenses(data.entries), 0);
+      expect(data.ledger.personBalance('s'), 50000);
+      final staff = ShopRepository(
+        db,
+        'shop',
+        'staff-device',
+        AppRole.staff,
+        'staff',
+      );
+      await staff.resolveRate('diesel-pending', 25000);
+      data = await repo.snapshot();
+      expect(data.ledger.pendingRates, isEmpty);
+      expect(data.ledger.cashBalance(), -50000);
+      expect(data.ledger.expenses(data.entries), 250000);
+      expect(data.ledger.personBalance('s'), -200000);
+      await expectLater(
+        staff.resolveRate('diesel-pending', 30000),
+        throwsA(isA<DomainFailure>()),
+      );
+      expect(data.ledger.stock('p'), 0);
+    },
+  );
 
   test(
     'automatic sales skip expired stock while godam transfers can move it',

@@ -8,6 +8,8 @@ import '../../../core/providers.dart';
 import '../../../core/presentation/widgets.dart';
 import '../../../l10n/strings.dart';
 import '../../catalog/presentation/editors.dart';
+import '../../khata/application/payment_summary.dart';
+import '../../khata/presentation/pending_payments_card.dart';
 import '../application/entry_service.dart';
 
 class EntryScreen extends ConsumerStatefulWidget {
@@ -29,11 +31,12 @@ class EntryScreen extends ConsumerStatefulWidget {
 class _EntryScreenState extends ConsumerState<EntryScreen> {
   final input = EntryInput();
   final fields = <String, TextEditingController>{};
-  bool dirty = false, saved = false;
+  bool dirty = false, saved = false, paymentPersonInitialized = false;
   @override
   void initState() {
     super.initState();
     input.kind = widget.kind;
+    if (widget.kind == EntryKind.cash) input.amount = '';
     if (widget.kind == EntryKind.cash || widget.kind == EntryKind.crop) {
       input.source = const Endpoint(PartyKind.farmer);
       input.destination = const Endpoint(PartyKind.inventory);
@@ -56,12 +59,8 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
           .where((p) => p.id == widget.personId)
           .firstOrNull;
       if (person != null) {
-        input.source = widget.receiving
-            ? Endpoint(person.kind, person.id)
-            : const Endpoint(PartyKind.inventory);
-        input.destination = widget.receiving
-            ? const Endpoint(PartyKind.inventory)
-            : Endpoint(person.kind, person.id);
+        EntryService.selectPaymentPerson(input, person, widget.receiving);
+        paymentPersonInitialized = true;
       }
     }
     for (final pair in [
@@ -70,7 +69,7 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
       ('purchase', '0'),
       ('sale', '0'),
       ('cash', '0'),
-      ('amount', '0'),
+      ('amount', input.amount),
       ('title', ''),
       ('note', ''),
     ]) {
@@ -124,6 +123,16 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
     decoration: InputDecoration(labelText: context.tr(label)),
     minLines: name == 'note' ? 2 : 1,
     maxLines: name == 'note' ? 3 : 1,
+    onChanged: name == 'purchase' || name == 'sale'
+        ? (value) {
+            EntryService.editPrice(input, name, value);
+            final rate = fields['rate']!;
+            rate.removeListener(_changed);
+            rate.text = input.rate;
+            rate.addListener(_changed);
+            setState(() => dirty = true);
+          }
+        : null,
   );
 
   Widget endpoint(ShopSnapshot data, bool source) {
@@ -134,6 +143,29 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
       _applyPrices();
       fields['cash']!.text = input.cash;
     });
+    Future<void> choose(PartyKind kind) async {
+      if (kind == PartyKind.farmer || kind == PartyKind.supplier) {
+        final person = await searchPick<Person>(
+          context,
+          title: context.tr('selectPerson'),
+          items: data.people.where((p) => p.kind == kind).toList(),
+          label: (p) => '${p.name} · ${p.village} · ${p.phone}',
+          onAdd: () => editPerson(context, ref, kind),
+        );
+        if (person != null && mounted) change(Endpoint(person.kind, person.id));
+      } else if (kind == PartyKind.godam) {
+        final godam = await searchPick<Godam>(
+          context,
+          title: context.tr('selectGodam'),
+          items: data.godams,
+          label: (g) => g.name,
+        );
+        if (godam != null && mounted) change(Endpoint(kind, godam.id));
+      } else {
+        change(Endpoint(kind));
+      }
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -150,7 +182,7 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
                 (kind) => ChoiceChip(
                   label: Text(context.tr(kind.name)),
                   selected: selected.kind == kind,
-                  onSelected: (_) => change(Endpoint(kind)),
+                  onSelected: (_) => choose(kind),
                 ),
               )
               .toList(),
@@ -172,31 +204,7 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
                             )
                           : endpointLabel(context, data, selected),
                     ),
-                    onPressed: () async {
-                      if (selected.person) {
-                        final person = await searchPick<Person>(
-                          context,
-                          title: context.tr('selectPerson'),
-                          items: data.people
-                              .where((p) => p.kind == selected.kind)
-                              .toList(),
-                          label: (p) => '${p.name} · ${p.village} · ${p.phone}',
-                        );
-                        if (person != null) {
-                          change(Endpoint(person.kind, person.id));
-                        }
-                      } else {
-                        final godam = await searchPick<Godam>(
-                          context,
-                          title: context.tr('selectGodam'),
-                          items: data.godams,
-                          label: (g) => g.name,
-                        );
-                        if (godam != null) {
-                          change(Endpoint(PartyKind.godam, godam.id));
-                        }
-                      }
-                    },
+                    onPressed: () => choose(selected.kind),
                   ),
                 ),
                 if (selected.person)
@@ -242,6 +250,29 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
       ),
       body: ShopData(
         builder: (data) {
+          if (widget.personId != null && !paymentPersonInitialized) {
+            final person = data.people
+                .where((p) => p.id == widget.personId)
+                .firstOrNull;
+            if (person != null) {
+              EntryService.selectPaymentPerson(input, person, widget.receiving);
+              paymentPersonInitialized = true;
+            }
+          }
+          final paymentPersonId = widget.kind != EntryKind.cash
+              ? null
+              : input.source.person && input.destination.internal
+              ? input.source.id
+              : input.destination.person && input.source.internal
+              ? input.destination.id
+              : null;
+          final paymentSummary = paymentPersonId == null
+              ? null
+              : PaymentSummary(
+                  data,
+                  paymentPersonId,
+                  receiving: input.destination.internal,
+                );
           JournalEntry? preview;
           try {
             preview = EntryService.preview(input);
@@ -266,6 +297,8 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
                   ],
                 ),
               ),
+              if (paymentSummary != null)
+                PendingPaymentsCard(summary: paymentSummary, data: data),
               OutlinedButton.icon(
                 icon: const Icon(Icons.calendar_month),
                 label: Text(context.day(input.date)),
@@ -459,7 +492,7 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
                 ),
               ],
               if (widget.kind == EntryKind.diesel) field('quantity', 'liters'),
-              if (stockEntry &&
+              if (input.isRateBearing &&
                   !(input.source.internal && input.destination.internal))
                 SwitchListTile.adaptive(
                   contentPadding: EdgeInsets.zero,
@@ -475,7 +508,13 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
                   widget.kind != EntryKind.other &&
                   !(input.source.internal && input.destination.internal)) ...[
                 if (!input.ratePending) field('rate', 'rate'),
-                if (stockEntry && !input.isDirect)
+                if (stockEntry &&
+                    (!input.isDirect || widget.kind == EntryKind.crop)) ...[
+                  if (widget.kind == EntryKind.crop)
+                    Text(
+                      context.tr('cropRates'),
+                      style: context.fonts.titleMedium,
+                    ),
                   Row(
                     children: [
                       Expanded(child: field('purchase', 'purchasePrice')),
@@ -483,6 +522,7 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
                       Expanded(child: field('sale', 'salePrice')),
                     ],
                   ),
+                ],
                 field('cash', 'cashAmount'),
               ],
               field(

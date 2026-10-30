@@ -223,9 +223,7 @@ class LedgerEngine {
     if (entry.totalPaise > 9000000000000) {
       throw const DomainFailure('invalidAmount');
     }
-    if (entry.ratePending &&
-        entry.kind != EntryKind.product &&
-        entry.kind != EntryKind.crop) {
+    if (entry.ratePending && !entry.isRateBearing) {
       throw const DomainFailure('invalidRatePending');
     }
     if (entry.kind == EntryKind.cash && entry.cashPaise != 0) {

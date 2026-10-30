@@ -9,6 +9,33 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get cropRates => 'Crop purchase & sale rates';
+
+  @override
+  String get pendingToReceive => 'Pending receipts';
+
+  @override
+  String get pendingToPay => 'Pending payments';
+
+  @override
+  String get outstanding => 'Outstanding balance';
+
+  @override
+  String get remaining => 'Remaining';
+
+  @override
+  String get noPendingPayments =>
+      'No priced payments pending in this direction.';
+
+  @override
+  String get paymentAllocationHelp =>
+      'Payments settle the oldest outstanding amounts first.';
+
+  @override
+  String get pendingPaymentRatesHelp =>
+      'Some entry rates are still pending. Advances are included in the balance; final dues may change.';
+
+  @override
   String get automaticBatch => 'Batch (automatic)';
 
   @override
@@ -201,7 +228,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get rateLaterHelp =>
-      'Stock moves now. Final khata updates when the rate is set.';
+      'Save now. Set the entry rate later to update totals and khata.';
 
   @override
   String get ratePending => 'Rate pending';
@@ -839,7 +866,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get invalidRatePending =>
-      'Only product and crop entries can have pending rates.';
+      'Only product, crop and diesel entries can have pending rates.';
 
   @override
   String get invalidExpense =>
