@@ -1,0 +1,14 @@
+include: package:flutter_lints/flutter.yaml
+analyzer:
+  exclude:
+    - '**/*.g.dart'
+    - .tooling/**
+    - build/**
+    - web/**
+    - android/**
+    - ios/**
+    - windows/**
+linter:
+  rules:
+    use_build_context_synchronously: true
+    avoid_print: true

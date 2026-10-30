@@ -1,0 +1,9 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    { "name": "PestiKhata · local demo (Chrome)", "request": "launch", "type": "dart", "deviceId": "chrome" },
+    { "name": "PestiKhata · Firebase (Chrome)", "request": "launch", "type": "dart", "deviceId": "chrome", "toolArgs": ["--dart-define-from-file=config/firebase.json"] },
+    { "name": "PestiKhata · Windows", "request": "launch", "type": "dart", "deviceId": "windows" },
+    { "name": "PestiKhata · selected mobile device", "request": "launch", "type": "dart" }
+  ]
+}

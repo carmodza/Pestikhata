@@ -1,0 +1,7 @@
+{
+  "dart.flutterSdkPath": ".tooling/flutter",
+  "dart.lineLength": 100,
+  "editor.formatOnSave": true,
+  "files.exclude": { "**/.tooling": true, "**/*.g.dart": true },
+  "search.exclude": { "**/.tooling": true, "**/build": true, "**/node_modules": true }
+}

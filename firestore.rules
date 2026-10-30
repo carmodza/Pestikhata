@@ -1,0 +1,112 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function membership(shop) { return get(/databases/$(database)/documents/shops/$(shop)/members/$(request.auth.uid)); }
+    function member(shop) { return signedIn() && exists(/databases/$(database)/documents/shops/$(shop)/members/$(request.auth.uid)); }
+    function owner(shop) { return member(shop) && membership(shop).data.role == 'owner'; }
+    function money(v) { return v is int && v >= 0 && v <= 9000000000000; }
+    function nonempty(v) { return v is string && v.size() > 0 && v.size() <= 300; }
+    function endpoint(e, shop) {
+      return e is map && e.keys().hasOnly(['kind','id']) &&
+        ((e.kind == 'inventory' || e.kind == 'walkIn') && e.id == null ||
+          e.kind == 'godam' && e.id is string && exists(/databases/$(database)/documents/shops/$(shop)/records/$('godams_' + e.id)) ||
+          e.kind in ['farmer','supplier'] && e.id is string &&
+            get(/databases/$(database)/documents/shops/$(shop)/records/$('people_' + e.id)).data.payload.kind == e.kind);
+    }
+    function internal(e) { return e.kind in ['inventory','godam']; }
+    function person(e) { return e.kind in ['farmer','supplier']; }
+    function entry(p, shop) {
+      let amountEntry = p.kind in ['cash','other'];
+      let transfer = internal(p.source) && internal(p.destination);
+      let total = p.ratePending || transfer ? 0 : (amountEntry ? p.amountPaise : math.round(p.quantity * p.ratePaise));
+      // The Dart domain uses exact decimal half-up arithmetic. Rules use binary
+      // numbers, so allow one paisa of representation tolerance for qty × rate.
+      let tolerance = amountEntry ? 0 : 1;
+      let external = internal(p.source) ? p.destination : p.source;
+      return p.keys().hasAll(['id','kind','source','destination','date','itemId','title','note','batch','expiry','quantity','unit','unitFactor',
+          'ratePaise','purchasePaise','salePaise','cashPaise','amountPaise','ratePending','expenseCategory','createdBy','createdAt','voided']) &&
+        p.keys().hasOnly(['id','kind','source','destination','date','itemId','title','note','batch','expiry','quantity','unit','unitFactor',
+          'ratePaise','purchasePaise','salePaise','cashPaise','amountPaise','ratePending','expenseCategory','createdBy','createdAt','voided','allocations']) &&
+        p.get('allocations',[]) is list && p.get('allocations',[]).size() <= 1000 &&
+        (p.get('allocations',[]).size() == 0 || p.kind in ['product','crop'] && internal(p.source)) &&
+        p.kind in ['cash','product','crop','diesel','other'] && p.date is string &&
+        p.title is string && p.title.size() <= 300 && p.note is string && p.note.size() <= 4000 &&
+        p.batch is string && p.batch.size() <= 200 && p.unit is string && p.expenseCategory is string &&
+        p.ratePending is bool && p.voided is bool && p.createdBy is string && p.createdAt is int && p.createdAt > 0 &&
+        endpoint(p.source,shop) && endpoint(p.destination,shop) && p.source != p.destination &&
+        (internal(p.source) || internal(p.destination) || person(p.source) && person(p.destination)) &&
+        p.quantity is number && p.quantity > 0 && p.quantity <= 1000000000 &&
+        p.unitFactor is number && p.unitFactor > 0 && p.unitFactor <= 1000000000 &&
+        money(p.ratePaise) && money(p.purchasePaise) && money(p.salePaise) && money(p.cashPaise) && money(p.amountPaise) &&
+        (p.ratePending || p.cashPaise <= total + tolerance) && total <= 9000000000000 &&
+        (!p.ratePending || p.kind in ['product','crop']) &&
+        (!transfer || p.kind in ['product','crop'] && p.cashPaise == 0 && !p.ratePending) &&
+        (p.kind != 'cash' || p.amountPaise > 0 && p.cashPaise == 0) &&
+        (p.kind != 'other' || (internal(p.source) || person(p.source) && person(p.destination)) && p.title.size() > 0 && p.amountPaise > 0 && p.cashPaise == p.amountPaise) &&
+        (p.kind != 'diesel' || internal(p.source) || person(p.source) && person(p.destination)) &&
+        (p.kind == 'cash' || p.ratePending || transfer || total > 0) &&
+        (transfer || person(external) || p.kind == 'cash' || !p.ratePending && math.abs(p.cashPaise - total) <= tolerance) &&
+        (!(p.kind in ['product','crop']) || p.itemId is string &&
+          get(/databases/$(database)/documents/shops/$(shop)/records/$('products_' + p.itemId)).data.payload.kind == p.kind) &&
+        (p.expiry == null || p.expiry is string) &&
+        (p.kind != 'product' || !internal(p.source) && !internal(p.destination) || p.batch.size() > 0 || internal(p.source) && p.get('allocations',[]).size() > 0);
+    }
+    function validPayload(d, shop) {
+      let p = d.payload;
+      return p is map && p.id == d.id &&
+        (d.entity == 'entries' && entry(p,shop) ||
+          d.entity == 'people' && p.keys().hasOnly(['id','name','kind','phone','village','acres','crops']) &&
+            nonempty(p.name) && p.kind in ['farmer','supplier'] && p.phone is string && p.village is string &&
+            p.acres is number && p.acres >= 0 && p.crops is string ||
+          d.entity == 'products' && p.keys().hasOnly(['id','name','company','crop','pest','kind','baseUnit','units','lowStock','purchasePaise','salePaise']) &&
+            nonempty(p.name) && p.company is string && p.crop is string && p.pest is string && p.kind in ['product','crop'] &&
+            p.units is map && p.units.size() <= 30 && nonempty(p.baseUnit) && p.units[p.baseUnit] == 1 &&
+            p.lowStock is number && p.lowStock >= 0 && money(p.purchasePaise) && money(p.salePaise) ||
+          d.entity == 'godams' && p.keys().hasOnly(['id','name','address']) && nonempty(p.name) && p.address is string ||
+          d.entity == 'rates' && p.keys().hasOnly(['id','itemId','date','purchasePaise','salePaise']) &&
+            p.itemId is string && p.date is string && money(p.purchasePaise) && money(p.salePaise));
+    }
+    function envelope(d, shop, record) {
+      return d.keys().hasOnly(['id','entity','shopId','payload','updatedAt','deviceId','deleted','committedAt']) &&
+        nonempty(d.id) && d.entity in ['people','products','godams','entries','rates'] &&
+        record == d.entity + '_' + d.id && d.shopId == shop &&
+        d.updatedAt is int && d.updatedAt > 0 && d.updatedAt <= request.time.toMillis() * 1000 + 300000000 &&
+        nonempty(d.deviceId) && d.deleted is bool && d.committedAt == request.time && validPayload(d,shop);
+    }
+    // The REST client resolves equal timestamps by lexicographic device ID under
+    // an updateTime precondition. Rules reject older timestamps independently.
+    function newer(a,b) { return a.updatedAt > b.updatedAt || a.updatedAt == b.updatedAt && a.deviceId != b.deviceId; }
+    function entryUpdate(a,b,shop) {
+      return a == b || a.diff(b).affectedKeys().hasOnly(['ratePaise','ratePending','voided']) &&
+        ((!b.voided && !a.voided && b.ratePending && !a.ratePending) ||
+          owner(shop) && !a.voided && !b.voided && !a.ratePending ||
+          owner(shop) && !b.voided && a.voided && a.ratePaise == b.ratePaise && a.ratePending == b.ratePending);
+    }
+    match /users/{uid} { allow read: if signedIn() && request.auth.uid == uid; allow write: if false; }
+    match /shops/{shop} {
+      allow read: if member(shop);
+      allow write: if false;
+      match /members/{uid} { allow read: if member(shop); allow write: if false; }
+      match /records/{record} {
+        allow read: if member(shop);
+        allow create: if member(shop) &&
+          !request.resource.data.deleted &&
+          (request.resource.data.entity != 'entries' ||
+            (request.resource.data.payload.createdBy == request.auth.uid || owner(shop)) &&
+              (!request.resource.data.payload.voided || owner(shop))) &&
+          envelope(request.resource.data,shop,record);
+        allow update: if member(shop) &&
+          request.resource.data.id == resource.data.id && request.resource.data.entity == resource.data.entity &&
+          newer(request.resource.data,resource.data) &&
+          (!request.resource.data.deleted || owner(shop)) &&
+          (resource.data.entity != 'entries' || !request.resource.data.deleted && entryUpdate(request.resource.data.payload,resource.data.payload,shop)) &&
+          (resource.data.entity != 'rates' || request.resource.data.payload == resource.data.payload) &&
+          envelope(request.resource.data,shop,record);
+        allow delete: if false;
+      }
+    }
+    // Secrets, invitations, OTPs and rate-limit records are Admin SDK only.
+    match /{document=**} { allow read, write: if false; }
+  }
+}

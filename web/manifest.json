@@ -1,0 +1,16 @@
+{
+  "name": "PestiKhata",
+  "short_name": "PestiKhata",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "background_color": "#f4f7f2",
+  "theme_color": "#24794e",
+  "description": "Khata, roznamcha, stock and crops for Pakistani agricultural shops.",
+  "orientation": "any",
+  "icons": [
+    { "src": "icons/Icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/Icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/pestikhata.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

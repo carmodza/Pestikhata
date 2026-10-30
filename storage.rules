@@ -1,0 +1,16 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function owner(shop) {
+      return request.auth != null &&
+        firestore.get(/databases/(default)/documents/shops/$(shop)/members/$(request.auth.uid)).data.role == 'owner';
+    }
+    match /shops/{shop}/backups/{file} {
+      allow read: if owner(shop);
+      allow create: if owner(shop) && request.resource.size < 50 * 1024 * 1024 &&
+        request.resource.contentType == 'application/json' && file.matches('.*[.]json');
+      allow update, delete: if false;
+    }
+    match /{allPaths=**} { allow read, write: if false; }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "name": "pestikhata-functions",
+  "private": true,
+  "engines": { "node": "22" },
+  "main": "lib/index.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "npm run build && node --test test/*.test.cjs",
+    "test:rules": "node --test test/firestore.rules.test.cjs",
+    "emulators": "firebase emulators:start --only auth,firestore,functions,storage"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.0",
+    "firebase-functions": "^6.0.0",
+    "nodemailer": "^7.0.0"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^4.0.0",
+    "@types/node": "^22.0.0",
+    "@types/nodemailer": "^6.4.0",
+    "firebase": "^11.0.0",
+    "typescript": "^5.9.0"
+  }
+}

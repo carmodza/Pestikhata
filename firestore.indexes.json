@@ -1,0 +1,15 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "records", "queryScope": "COLLECTION",
+      "fields": [{ "fieldPath": "entity", "order": "ASCENDING" }, { "fieldPath": "updatedAt", "order": "DESCENDING" }]
+    }
+  ],
+  "fieldOverrides": [
+    { "collectionGroup": "records", "fieldPath": "payload", "indexes": [] },
+    { "collectionGroup": "emailChallenges", "fieldPath": "expiresAt", "ttl": true, "indexes": [] },
+    { "collectionGroup": "desktopSessions", "fieldPath": "expiresAt", "ttl": true, "indexes": [] },
+    { "collectionGroup": "rateLimits", "fieldPath": "expiresAt", "ttl": true, "indexes": [] },
+    { "collectionGroup": "invites", "fieldPath": "expiresAt", "ttl": true, "indexes": [] }
+  ]
+}
