@@ -43,6 +43,7 @@ class PendingPaymentsCard extends StatelessWidget {
             entry: bill.entry,
             data: data,
             remainingPaise: bill.remainingPaise,
+            personId: summary.personId,
           ),
         ),
         if (summary.unpricedEntries.isNotEmpty) ...[
@@ -52,7 +53,8 @@ class PendingPaymentsCard extends StatelessWidget {
             style: context.fonts.bodySmall,
           ),
           ...summary.unpricedEntries.map(
-            (entry) => EntryTile(entry: entry, data: data),
+            (entry) =>
+                EntryTile(entry: entry, data: data, personId: summary.personId),
           ),
         ],
       ],

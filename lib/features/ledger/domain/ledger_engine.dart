@@ -67,7 +67,9 @@ class LedgerEngine {
         e.destination.id == personId) {
       return -e.creditPaise;
     }
-    if (e.source.person && e.source.id == personId) return -e.creditPaise;
+    if (e.source.person && e.source.id == personId) {
+      return -(e.hasCropPurchase ? e.purchaseCreditPaise : e.creditPaise);
+    }
     if (e.destination.person && e.destination.id == personId) {
       return e.creditPaise;
     }
@@ -140,14 +142,14 @@ class LedgerEngine {
       )
       .toList();
   List<JournalEntry> get pendingRates =>
-      entries.where((e) => e.ratePending).toList();
+      entries.where((e) => e.hasPendingRate).toList();
   int profit(Iterable<JournalEntry> range) => range
-      .where((e) => e.isSale && !e.ratePending)
+      .where((e) => e.isSale && !e.hasPendingRate)
       .fold(
         0,
         (s, e) =>
             s +
-            (e.isDirect
+            (e.isDirect && !e.cropPricing
                 ? 0
                 : e.totalPaise - multiplyMoney(e.quantity, e.purchasePaise)),
       );
@@ -225,6 +227,29 @@ class LedgerEngine {
     }
     if (entry.ratePending && !entry.isRateBearing) {
       throw const DomainFailure('invalidRatePending');
+    }
+    if ((entry.cropPricing && entry.kind != EntryKind.crop) ||
+        (entry.purchaseRatePending &&
+            (!entry.cropPricing || !entry.isDirect)) ||
+        (entry.cropPricing &&
+            !entry.isTransfer &&
+            entry.ratePaise !=
+                (entry.ratePending
+                    ? 0
+                    : entry.hasCropSale
+                    ? entry.salePaise
+                    : entry.purchasePaise)) ||
+        (entry.cropPricing && !entry.hasCropSale && entry.salePaise != 0)) {
+      throw const DomainFailure('invalidAmount');
+    }
+    if (entry.hasCropPurchase && !entry.cropPurchasePending) {
+      if (entry.purchaseTotalPaise <= 0 ||
+          entry.purchaseTotalPaise > 9000000000000) {
+        throw const DomainFailure('invalidAmount');
+      }
+      if (entry.cashPaise > entry.purchaseTotalPaise) {
+        throw const DomainFailure('cashExceedsTotal');
+      }
     }
     if (entry.kind == EntryKind.cash && entry.cashPaise != 0) {
       throw const DomainFailure('invalidAmount');

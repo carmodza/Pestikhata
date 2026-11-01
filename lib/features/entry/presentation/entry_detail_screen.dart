@@ -6,7 +6,7 @@ import '../../../core/domain/models.dart';
 import '../../../core/providers.dart';
 import '../../../core/presentation/widgets.dart';
 import '../../../l10n/strings.dart';
-import '../../ledger/domain/ledger_engine.dart';
+import 'entry_rate_editor.dart';
 
 class EntryDetailScreen extends ConsumerWidget {
   const EntryDetailScreen({super.key, required this.id});
@@ -51,30 +51,61 @@ class EntryDetailScreen extends ConsumerWidget {
                     ('quantity', '${e.quantity} ${context.tr(e.unit)}'),
                   if (e.batch.isNotEmpty) ('batch', e.batch),
                   if (e.expiry != null) ('expiryDate', context.day(e.expiry!)),
-                  if (e.isRateBearing)
+                  if (e.isRateBearing && !e.cropPricing)
                     (
                       'rate',
                       e.ratePending
                           ? context.tr('ratePending')
                           : context.money(e.ratePaise),
                     ),
-                  if (e.hasStock && !e.isTransfer)
+                  if (e.hasStock && !e.isTransfer && !e.cropPricing)
                     ('purchasePrice', context.money(e.purchasePaise)),
-                  if (e.hasStock && !e.isTransfer)
+                  if (e.hasStock && !e.isTransfer && !e.cropPricing)
                     ('salePrice', context.money(e.salePaise)),
-                  (
-                    'total',
-                    e.ratePending
-                        ? context.tr('ratePending')
-                        : context.money(e.totalPaise),
-                  ),
+                  if (e.hasCropPurchase) ...[
+                    (
+                      'purchasePrice',
+                      e.cropPurchasePending
+                          ? context.tr('ratePending')
+                          : context.money(e.purchasePaise),
+                    ),
+                    (
+                      'purchaseTotal',
+                      e.cropPurchasePending
+                          ? context.tr('ratePending')
+                          : context.money(e.purchaseTotalPaise),
+                    ),
+                    ('sellerKhata', context.money(e.purchaseCreditPaise)),
+                  ],
+                  if (e.hasCropSale) ...[
+                    (
+                      'salePrice',
+                      e.ratePending
+                          ? context.tr('ratePending')
+                          : context.money(e.salePaise),
+                    ),
+                    (
+                      'saleTotal',
+                      e.ratePending
+                          ? context.tr('ratePending')
+                          : context.money(e.totalPaise),
+                    ),
+                    ('buyerKhata', context.money(e.creditPaise)),
+                  ],
+                  if (!e.cropPricing)
+                    (
+                      'total',
+                      e.ratePending
+                          ? context.tr('ratePending')
+                          : context.money(e.totalPaise),
+                    ),
                   (
                     'cashAmount',
                     context.money(
                       e.kind == EntryKind.cash ? e.amountPaise : e.cashPaise,
                     ),
                   ),
-                  ('udhar', context.money(e.creditPaise)),
+                  if (!e.cropPricing) ('udhar', context.money(e.creditPaise)),
                   if (e.isDirect)
                     ('cashReceived', context.money(e.cashInPaise)),
                   if (e.isDirect) ('cashPaid', context.money(e.cashOutPaise)),
@@ -100,27 +131,23 @@ class EntryDetailScreen extends ConsumerWidget {
               ],
             ),
           ),
-          if (e.isDirect) Text(context.tr('directEntryHelp')),
+          if (e.isDirect)
+            Text(
+              context.tr(e.cropPricing ? 'cropCashHelp' : 'directEntryHelp'),
+            ),
           if (e.isRateBearing &&
               !e.isTransfer &&
               !e.voided &&
-              (e.ratePending ||
+              (e.hasPendingRate ||
                   ref.watch(activeSessionProvider)!.role == AppRole.owner))
             ActionButton(
-              label: context.tr(e.ratePending ? 'setRate' : 'editRate'),
-              onPressed: () async {
-                final rate = await askText(
-                  context,
-                  title: context.tr(e.ratePending ? 'setRate' : 'editRate'),
-                  initial: e.ratePending ? '' : moneyInput(e.ratePaise),
-                  numeric: true,
-                );
-                if (rate != null) {
-                  await ref
-                      .read(repositoryProvider)
-                      .resolveRate(id, parseMoney(rate));
-                }
-              },
+              label: context.tr(e.hasPendingRate ? 'setRate' : 'editRate'),
+              onPressed: () => editEntryRates(
+                context,
+                ref.read(repositoryProvider),
+                e,
+                owner: ref.read(activeSessionProvider)!.role == AppRole.owner,
+              ),
             ),
           if (ref.watch(activeSessionProvider)!.role == AppRole.owner &&
               !e.voided)

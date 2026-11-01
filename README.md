@@ -26,13 +26,13 @@ Select **Try local demo**, then **Seed demo data** on Home. Settings contains th
 
 ## Main flows
 
-Crop entries show both purchase and sale rates. Editing the applicable price updates the billed rate, which can still be overridden. **Rate later** is available on priced product, crop and diesel entries, including direct trades. Cash and ordinary expenses remain amount-based.
+Crop entries follow the route: **Farmer → Shop/Godam** asks only for the purchase rate; **Shop/Godam → buyer** asks only for the sale rate; **Farmer → buyer** asks for both, with separate seller and buyer khatas. For example, buying 10 maan of rice at Rs2,800 adds Rs28,000 payable to the farmer and 400 kg of stock, without recording a sale. Crops default to maan (40 kg), and the rate field identifies its unit. Changing units converts edited rates. **Rate later** is available on products, crops and diesel; direct crop trades can price either side later. Cash and ordinary expenses remain amount-based.
 
 Tap a Farmer, Supplier or Godam source/destination chip to open its list immediately. Person lists include **Add new**. **Give payment** and **Receive payment** show the selected person's outstanding balance and pending bills; the amount is left blank. Payments settle the oldest open amounts first. Entries and exported ledgers include product/crop, quantity, unit and rate.
 
 The internal shop location is labelled **Shop**. Incoming product stock receives an automatic batch number and an optional expiry date. Sales and godam transfers select stock automatically across available lots; no manual batch selection is required.
 
-Direct entries between recorded people (for example Supplier → Farmer) update both khatas without moving Shop/Godam stock. Entered cash is received and paid onward through Shop, appearing in both cash-in and cash-out with no net cash change. These direct pass-through trades do not add shop profit. Entry icons show incoming movements in green, outgoing movements in red and direct entries in blue.
+Direct entries between recorded people (for example Supplier → Farmer) update both khatas without moving Shop/Godam stock. Entered cash is received and paid onward through Shop, appearing in both cash-in and cash-out with no net cash change; record different paid/received amounts as separate Khata payments. New direct crop trades calculate seller payable from the purchase total and buyer receivable from the sale total; the difference is crop profit when both rates are known. Other direct pass-through trades retain one bill amount and no shop profit. Entry icons show incoming movements in green, outgoing movements in red and direct entries in blue. Existing saved bills keep their original accounting; incorrect historical bills can be voided and re-entered.
 
 Open **More → Stock** for the merged Shop and Godam workspace. **Items** lists products/crops with an all-locations, shop-stock or individual-godam filter. **Godams & transfers** manages godams and stock movements. Existing records and location balances remain available, and legacy stock/location links open the merged workspace.
 
@@ -61,4 +61,3 @@ Pending rates move stock immediately and record any cash advance. Home lists the
 Local demo and offline records are available without Firebase. Live sign-in, synchronization, invitations and cloud backup require a Firebase project plus an SMTP sender for numeric email codes. First sign-in and authorization changes require internet. Existing sessions keep their local shop data while offline. Revoked membership is enforced by the server on reconnection.
 
 Native packaging/signing, live provider setup and the release acceptance checks in the guides must be completed before distributing this to real shops. This repository does not claim those external integrations are tested merely because source code exists.
-

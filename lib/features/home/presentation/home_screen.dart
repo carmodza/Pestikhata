@@ -6,7 +6,8 @@ import '../../../core/presentation/app_shell.dart';
 import '../../../core/presentation/widgets.dart';
 import '../../../core/providers.dart';
 import '../../../l10n/strings.dart';
-import '../../ledger/domain/ledger_engine.dart';
+import '../../../core/domain/models.dart';
+import '../../entry/presentation/entry_rate_editor.dart';
 import '../../reports/application/report_service.dart';
 import '../../demo/data/demo_data.dart';
 
@@ -120,24 +121,14 @@ class HomeScreen extends ConsumerWidget {
                         entry: e,
                         data: data,
                         onTap: () async {
-                          final rate = await askText(
+                          await editEntryRates(
                             context,
-                            title: context.tr('setRate'),
-                            numeric: true,
+                            ref.read(repositoryProvider),
+                            e,
+                            owner:
+                                ref.read(activeSessionProvider)!.role ==
+                                AppRole.owner,
                           );
-                          if (rate == null || !context.mounted) return;
-                          try {
-                            await ref
-                                .read(repositoryProvider)
-                                .resolveRate(e.id, parseMoney(rate));
-                            if (context.mounted) {
-                              context.toast(context.tr('rateUpdated'));
-                            }
-                          } catch (error) {
-                            if (context.mounted) {
-                              context.toast(context.failure(error));
-                            }
-                          }
                         },
                       ),
                     )

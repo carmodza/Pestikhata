@@ -303,8 +303,20 @@ String entryTitle(
     ? data.productName(entry.itemId)
     : context.tr(entry.kind.name);
 
-String entryQuantity(BuildContext context, JournalEntry entry) =>
-    '${entry.quantity.toString().replaceFirst(RegExp(r'\.0$'), '')} ${context.tr(entry.unit)}${entry.isTransfer ? '' : ' × ${entry.ratePending ? context.tr('ratePending') : context.money(entry.ratePaise)}'}';
+String entryQuantity(
+  BuildContext context,
+  JournalEntry entry, {
+  String? personId,
+}) {
+  final quantity =
+      '${entry.quantity.toString().replaceFirst(RegExp(r'\.0$'), '')} ${context.tr(entry.unit)}';
+  if (entry.isTransfer) return quantity;
+  if (entry.cropPricing && entry.isDirect && personId == null) {
+    return '$quantity · ${context.tr('purchaseLabel')} ${entry.purchaseRatePending ? context.tr('ratePending') : context.money(entry.purchasePaise)} · ${context.tr('saleLabel')} ${entry.ratePending ? context.tr('ratePending') : context.money(entry.salePaise)}';
+  }
+  final seller = entry.hasCropPurchase && personId == entry.source.id;
+  return '$quantity × ${(seller ? entry.cropPurchasePending : entry.ratePending) ? context.tr('ratePending') : context.money(seller ? entry.purchasePaise : entry.ratePaise)}';
+}
 
 class EntryTile extends StatelessWidget {
   const EntryTile({
@@ -313,13 +325,19 @@ class EntryTile extends StatelessWidget {
     required this.data,
     this.onTap,
     this.remainingPaise,
+    this.personId,
   });
   final JournalEntry entry;
   final ShopSnapshot data;
   final VoidCallback? onTap;
   final int? remainingPaise;
+  final String? personId;
   @override
   Widget build(BuildContext context) {
+    final seller = entry.hasCropPurchase && personId == entry.source.id;
+    final pending = seller ? entry.cropPurchasePending : entry.ratePending;
+    final total = seller ? entry.purchaseTotalPaise : entry.totalPaise;
+    final credit = seller ? entry.purchaseCreditPaise : entry.creditPaise;
     return ListTile(
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
@@ -340,7 +358,7 @@ class EntryTile extends StatelessWidget {
             Text(data.productName(entry.itemId)),
           if (entry.isRateBearing)
             Text(
-              entryQuantity(context, entry),
+              entryQuantity(context, entry, personId: personId),
               style: context.fonts.bodyMedium?.copyWith(
                 fontWeight: FontWeight.w600,
               ),
@@ -361,19 +379,28 @@ class EntryTile extends StatelessWidget {
           Text(
             remainingPaise != null
                 ? context.money(remainingPaise!)
-                : entry.ratePending
+                : pending
                 ? context.tr('ratePending')
-                : context.money(entry.totalPaise),
+                : context.money(total),
             style: TextStyle(
               fontWeight: FontWeight.w700,
-              color: entry.ratePending ? Colors.orange.shade800 : null,
+              color: pending ? Colors.orange.shade800 : null,
             ),
           ),
           if (remainingPaise != null)
             Text(context.tr('remaining'), style: context.fonts.bodySmall),
-          if (remainingPaise == null && entry.creditPaise != 0)
+          if (remainingPaise == null && credit != 0)
             Text(
-              '${context.tr('udhar')} ${context.money(entry.creditPaise)}',
+              '${context.tr('udhar')} ${context.money(credit)}',
+              style: context.fonts.bodySmall,
+            ),
+          if (personId == null &&
+              entry.cropPricing &&
+              entry.isDirect &&
+              entry.purchaseRatePending &&
+              !entry.ratePending)
+            Text(
+              context.tr('purchaseRateLater'),
               style: context.fonts.bodySmall,
             ),
         ],

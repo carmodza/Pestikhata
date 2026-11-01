@@ -98,6 +98,126 @@ abstract class AppLocalizations {
     Locale('ur'),
   ];
 
+  /// No description provided for @cropSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Take / buy from'**
+  String get cropSource;
+
+  /// No description provided for @cropDestination.
+  ///
+  /// In en, this message translates to:
+  /// **'Store at / sell to'**
+  String get cropDestination;
+
+  /// No description provided for @cropPurchaseHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Buying into Shop or Godam: enter the purchase rate only. The unpaid amount goes to the seller’s khata.'**
+  String get cropPurchaseHelp;
+
+  /// No description provided for @cropSaleHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Selling stored crops: enter the sale rate. The unpaid amount goes to the buyer’s khata.'**
+  String get cropSaleHelp;
+
+  /// No description provided for @cropDirectHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Buying and selling directly: the purchase rate updates the seller’s khata; the sale rate updates the buyer’s khata. No Shop or Godam stock moves.'**
+  String get cropDirectHelp;
+
+  /// No description provided for @purchaseRateLater.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchase rate later'**
+  String get purchaseRateLater;
+
+  /// No description provided for @saleRateLater.
+  ///
+  /// In en, this message translates to:
+  /// **'Sale rate later'**
+  String get saleRateLater;
+
+  /// No description provided for @purchaseTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchase total'**
+  String get purchaseTotal;
+
+  /// No description provided for @saleTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Sale total'**
+  String get saleTotal;
+
+  /// No description provided for @sellerKhata.
+  ///
+  /// In en, this message translates to:
+  /// **'Due to seller / advance (−)'**
+  String get sellerKhata;
+
+  /// No description provided for @buyerKhata.
+  ///
+  /// In en, this message translates to:
+  /// **'Due from buyer / advance (−)'**
+  String get buyerKhata;
+
+  /// No description provided for @paidNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Paid now (Rs)'**
+  String get paidNow;
+
+  /// No description provided for @receivedNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Received now (Rs)'**
+  String get receivedNow;
+
+  /// No description provided for @cashThroughShop.
+  ///
+  /// In en, this message translates to:
+  /// **'Cash through Shop (Rs)'**
+  String get cashThroughShop;
+
+  /// No description provided for @cropCashHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'This cash is received from the buyer and paid to the seller through Shop. Record separate payments in Khata if the amounts differ.'**
+  String get cropCashHelp;
+
+  /// No description provided for @balanceSoFar.
+  ///
+  /// In en, this message translates to:
+  /// **'Balance so far'**
+  String get balanceSoFar;
+
+  /// No description provided for @keepRatePending.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave a pending rate blank to fill it later.'**
+  String get keepRatePending;
+
+  /// No description provided for @purchaseLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Buy'**
+  String get purchaseLabel;
+
+  /// No description provided for @saleLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Sell'**
+  String get saleLabel;
+
+  /// No description provided for @rateUnit.
+  ///
+  /// In en, this message translates to:
+  /// **'Rate for 1'**
+  String get rateUnit;
+
   /// No description provided for @cropRates.
   ///
   /// In en, this message translates to:

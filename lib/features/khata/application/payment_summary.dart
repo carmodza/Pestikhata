@@ -18,11 +18,7 @@ class _OpenMovement {
 /// Opposite khata movements settle the oldest open amount first, including
 /// advances paid before a bill. This projection never edits historical bills.
 class PaymentSummary {
-  PaymentSummary(
-    ShopSnapshot data,
-    String personId, {
-    required this.receiving,
-  }) {
+  PaymentSummary(ShopSnapshot data, this.personId, {required this.receiving}) {
     balance = data.ledger.personBalance(personId);
     duePaise = receiving
         ? (balance > 0 ? balance : 0)
@@ -46,18 +42,19 @@ class PaymentSummary {
     bills = open
         .where(
           (m) =>
-              !m.entry.ratePending &&
+              !m.entry.ratePendingFor(personId) &&
               (receiving ? m.remaining > 0 : m.remaining < 0),
         )
         .map((m) => PendingBill(m.entry, m.remaining.abs()))
         .toList();
     unpricedEntries = data.ledger
         .personEntries(personId)
-        .where((e) => e.ratePending)
+        .where((e) => e.ratePendingFor(personId))
         .toList();
   }
 
   final bool receiving;
+  final String personId;
   late final int balance, duePaise;
   late final List<PendingBill> bills;
   late final List<JournalEntry> unpricedEntries;

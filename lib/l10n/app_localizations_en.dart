@@ -9,6 +9,70 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get cropSource => 'Take / buy from';
+
+  @override
+  String get cropDestination => 'Store at / sell to';
+
+  @override
+  String get cropPurchaseHelp =>
+      'Buying into Shop or Godam: enter the purchase rate only. The unpaid amount goes to the seller’s khata.';
+
+  @override
+  String get cropSaleHelp =>
+      'Selling stored crops: enter the sale rate. The unpaid amount goes to the buyer’s khata.';
+
+  @override
+  String get cropDirectHelp =>
+      'Buying and selling directly: the purchase rate updates the seller’s khata; the sale rate updates the buyer’s khata. No Shop or Godam stock moves.';
+
+  @override
+  String get purchaseRateLater => 'Purchase rate later';
+
+  @override
+  String get saleRateLater => 'Sale rate later';
+
+  @override
+  String get purchaseTotal => 'Purchase total';
+
+  @override
+  String get saleTotal => 'Sale total';
+
+  @override
+  String get sellerKhata => 'Due to seller / advance (−)';
+
+  @override
+  String get buyerKhata => 'Due from buyer / advance (−)';
+
+  @override
+  String get paidNow => 'Paid now (Rs)';
+
+  @override
+  String get receivedNow => 'Received now (Rs)';
+
+  @override
+  String get cashThroughShop => 'Cash through Shop (Rs)';
+
+  @override
+  String get cropCashHelp =>
+      'This cash is received from the buyer and paid to the seller through Shop. Record separate payments in Khata if the amounts differ.';
+
+  @override
+  String get balanceSoFar => 'Balance so far';
+
+  @override
+  String get keepRatePending => 'Leave a pending rate blank to fill it later.';
+
+  @override
+  String get purchaseLabel => 'Buy';
+
+  @override
+  String get saleLabel => 'Sell';
+
+  @override
+  String get rateUnit => 'Rate for 1';
+
+  @override
   String get cropRates => 'Crop purchase & sale rates';
 
   @override

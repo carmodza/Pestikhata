@@ -6,7 +6,7 @@ Shop and godam stock are available under **More → Stock**. Use **Items** to se
 
 The shop location is now named **Shop**. Batch numbers are automatic, with optional expiry controls shown only on incoming product stock. Sales and transfers select stock automatically. Direct entries between two people update both khatas, with cash received and paid onward through Shop. Icons are green for in, red for out and blue for direct entries.
 
-Crop entries include purchase and sale rates. **Rate later** is available for product, crop and diesel entries throughout the app. Source/destination chips open their person/godam lists directly. Give/Receive Payment shows pending bills with a blank amount; entry lists and statements include quantities and rates.
+Crop entries show only the relevant rate: **Farmer → Shop/Godam** needs a purchase rate; **Shop/Godam → buyer** needs a sale rate; **Farmer → buyer** has independent purchase and sale rates. Crops start in maan (40 kg). For example, receive 10 maan of rice at Rs2,800: stock increases by 400 kg and farmer payable increases by Rs28,000 (less any cash paid), with no sale price until an actual sale. **Rate later** applies to products, crops and diesel; either side of a direct crop trade can remain pending. Source/destination chips open their person/godam lists directly. Give/Receive Payment shows pending bills with a blank amount; entry lists and statements include quantities and rates. Existing saved crop bills retain their recorded balances; void and re-enter an incorrect historical bill.
 
 Use Flutter stable 3.47.8, Dart 3.13.7, Node 22 and Git. Run commands from the project root:
 
@@ -89,4 +89,3 @@ npx firebase-tools emulators:exec --project demo-pestikhata --only firestore "np
 The Firestore emulator requires Java 21. Backend tests skip rule tests explicitly when no emulator is present; skipped tests are not a security verification result. GitHub Actions starts the emulator separately to test rules. Unit and repository tests use in-memory SQLite and do not contact a production Firebase project.
 
 On this workspace, `.\tool\verify_rules.ps1` selects the locally installed portable Java and Firebase CLI automatically. `node tool/browser_smoke.mjs` checks the built web app in headless Chrome, including saved-data persistence after offline reload.
-

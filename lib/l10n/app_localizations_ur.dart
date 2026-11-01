@@ -9,6 +9,70 @@ class AppLocalizationsUr extends AppLocalizations {
   AppLocalizationsUr([String locale = 'ur']) : super(locale);
 
   @override
+  String get cropSource => 'Kis se lena / khareedna hai';
+
+  @override
+  String get cropDestination => 'Kahan rakhna / kis ko bechna hai';
+
+  @override
+  String get cropPurchaseHelp =>
+      'Dukaan ya Godam mein khareed: sirf khareed rate likhein. Baqi raqam bechnay walay ke khatay mein jayegi.';
+
+  @override
+  String get cropSaleHelp =>
+      'Rakhee hui fasal ki farokht: farokht rate likhein. Baqi raqam khareednay walay ke khatay mein jayegi.';
+
+  @override
+  String get cropDirectHelp =>
+      'Seedhi khareed aur farokht: khareed rate bechnay walay ka khata, farokht rate khareednay walay ka khata update karta hai. Dukaan ya Godam ka stock nahin badalta.';
+
+  @override
+  String get purchaseRateLater => 'Khareed rate baad mein';
+
+  @override
+  String get saleRateLater => 'Farokht rate baad mein';
+
+  @override
+  String get purchaseTotal => 'Khareed ki kul raqam';
+
+  @override
+  String get saleTotal => 'Farokht ki kul raqam';
+
+  @override
+  String get sellerKhata => 'Bechnay walay ko dena / advance (−)';
+
+  @override
+  String get buyerKhata => 'Khareednay walay se lena / advance (−)';
+
+  @override
+  String get paidNow => 'Abhi di hui raqam (Rs)';
+
+  @override
+  String get receivedNow => 'Abhi wasool raqam (Rs)';
+
+  @override
+  String get cashThroughShop => 'Dukaan ke zariye naqad (Rs)';
+
+  @override
+  String get cropCashHelp =>
+      'Yeh naqad khareednay walay se Dukaan mein aa kar bechnay walay ko di jayegi. Raqmein alag hon to Khata mein alag adaigi likhein.';
+
+  @override
+  String get balanceSoFar => 'Ab tak ka balance';
+
+  @override
+  String get keepRatePending => 'Baqi rate khali chhor kar baad mein lagayein.';
+
+  @override
+  String get purchaseLabel => 'Khareed';
+
+  @override
+  String get saleLabel => 'Farokht';
+
+  @override
+  String get rateUnit => 'Rate baraye 1';
+
+  @override
   String get cropRates => 'Fasal ke khareed aur farokht rates';
 
   @override

@@ -22,7 +22,15 @@ class EntryInput {
       amount = '0',
       expenseCategory = 'other';
   bool ratePending = false;
+  bool purchaseRatePending = false;
   bool get isDirect => source.person && destination.person;
+  bool get isTransfer => source.internal && destination.internal;
+  bool get cropPurchase =>
+      kind == EntryKind.crop && !source.internal && !isTransfer;
+  bool get cropSale =>
+      kind == EntryKind.crop && !destination.internal && !isTransfer;
+  bool get cropPurchasePending =>
+      cropPurchase && (isDirect ? purchaseRatePending : ratePending);
   bool get receivingProduct =>
       kind == EntryKind.product && !source.internal && destination.internal;
   bool get salePricing => source.internal || isDirect;
@@ -36,15 +44,27 @@ class EntryService {
   const EntryService(this.repository);
   final ShopRepository repository;
   static void changeEndpoint(EntryInput input, bool source, Endpoint endpoint) {
+    final wasPurchasePending = input.cropPurchase && input.cropPurchasePending;
+    final wasSalePending = input.cropSale && input.ratePending;
     final wasSale = input.salePricing;
     if (source) {
       input.source = endpoint;
     } else {
       input.destination = endpoint;
     }
-    if (source || wasSale != input.salePricing) applyUnit(input);
+    // Changing a person or storage location must not discard an edited price.
+    if (input.kind == EntryKind.crop || wasSale != input.salePricing) {
+      input.rate = input.salePricing ? input.sale : input.purchase;
+    }
+    if (input.kind == EntryKind.crop) {
+      input.purchaseRatePending = input.isDirect && wasPurchasePending;
+      input.ratePending = input.salePricing
+          ? wasSalePending
+          : wasPurchasePending;
+    }
     if (input.source.internal && input.destination.internal) {
       input.ratePending = false;
+      input.purchaseRatePending = false;
       input.cash = '0';
     }
   }
@@ -54,6 +74,10 @@ class EntryService {
     final isAmount =
         input.kind == EntryKind.cash || input.kind == EntryKind.other;
     final amount = isAmount ? parseMoney(input.amount) : 0;
+    final crop = input.kind == EntryKind.crop;
+    final rate = crop
+        ? (input.cropSale ? input.sale : input.purchase)
+        : input.rate;
     return JournalEntry(
       id: id,
       kind: input.kind,
@@ -68,9 +92,15 @@ class EntryService {
       quantity: quantity,
       unit: input.kind == EntryKind.diesel ? 'liter' : input.unit,
       unitFactor: input.product?.units[input.unit] ?? 1,
-      ratePaise: isAmount || input.ratePending ? 0 : parseMoney(input.rate),
-      purchasePaise: parseMoney(input.purchase),
-      salePaise: parseMoney(input.sale),
+      ratePaise: isAmount || input.ratePending || input.isTransfer
+          ? 0
+          : parseMoney(rate),
+      purchasePaise: crop && (input.isTransfer || input.cropPurchasePending)
+          ? 0
+          : parseMoney(input.purchase),
+      salePaise: crop && (!input.cropSale || input.ratePending)
+          ? 0
+          : parseMoney(input.sale),
       cashPaise: input.kind == EntryKind.other
           ? amount
           : input.kind == EntryKind.cash
@@ -78,6 +108,8 @@ class EntryService {
           : parseMoney(input.cash),
       amountPaise: amount,
       ratePending: input.ratePending,
+      cropPricing: crop,
+      purchaseRatePending: crop && input.isDirect && input.purchaseRatePending,
       expenseCategory: input.expenseCategory,
     );
   }
@@ -87,7 +119,10 @@ class EntryService {
   static void selectProduct(EntryInput input, Product product) {
     if (input.product?.id != product.id) input.expiry = null;
     input.product = product;
-    input.unit = product.baseUnit;
+    input.unit =
+        product.kind == EntryKind.crop && product.units.containsKey('maan')
+        ? 'maan'
+        : product.baseUnit;
     applyUnit(input);
   }
 
@@ -98,6 +133,24 @@ class EntryService {
     input.purchase = moneyInput(multiplyMoney(factor, product.purchasePaise));
     input.sale = moneyInput(multiplyMoney(factor, product.salePaise));
     input.rate = input.salePricing ? input.sale : input.purchase;
+  }
+
+  static void changeUnit(EntryInput input, String unit) {
+    final units = input.product?.units;
+    final factor = (units?[unit] ?? 1) / (units?[input.unit] ?? 1);
+    String converted(String text) {
+      try {
+        return moneyInput(multiplyMoney(factor, parseMoney(text)));
+      } on DomainFailure {
+        // A blank/incomplete price remains editable when the unit changes.
+        return '';
+      }
+    }
+
+    input.purchase = converted(input.purchase);
+    input.sale = converted(input.sale);
+    input.rate = converted(input.rate);
+    input.unit = unit;
   }
 
   static void editPrice(EntryInput input, String field, String value) {

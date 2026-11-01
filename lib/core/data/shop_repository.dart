@@ -176,27 +176,42 @@ class ShopRepository {
       ).toJson(),
     );
   });
-  Future<void> resolveRate(String id, int rate) => db.transaction(() async {
-    final data = await snapshot();
-    final entry = data.entries.where((e) => e.id == id).firstOrNull;
-    if (entry == null ||
-        !entry.isRateBearing ||
-        entry.isTransfer ||
-        entry.voided) {
-      throw const DomainFailure('entryImmutable');
-    }
-    if (!entry.ratePending) requireOwner();
-    final updated = entry.withRate(rate);
-    final other = LedgerEngine(data.entries.where((e) => e.id != id));
-    other.validate(
-      updated,
-      products: data.products,
-      people: data.people,
-      godams: data.godams,
-      checkStock: false,
-    );
-    await _put('entries', id, updated.toJson());
-  });
+  Future<void> resolveRate(String id, int rate, {bool purchase = false}) =>
+      resolveEntryRates(
+        id,
+        rate: purchase ? null : rate,
+        purchase: purchase ? rate : null,
+      );
+
+  Future<void> resolveEntryRates(String id, {int? rate, int? purchase}) =>
+      db.transaction(() async {
+        final data = await snapshot();
+        final entry = data.entries.where((e) => e.id == id).firstOrNull;
+        if (entry == null ||
+            !entry.isRateBearing ||
+            entry.isTransfer ||
+            entry.voided ||
+            (rate == null && purchase == null) ||
+            (purchase != null && !(entry.cropPricing && entry.isDirect))) {
+          throw const DomainFailure('entryImmutable');
+        }
+        if ((rate != null && !entry.ratePending) ||
+            (purchase != null && !entry.purchaseRatePending)) {
+          requireOwner();
+        }
+        var updated = entry;
+        if (rate != null) updated = updated.withRate(rate);
+        if (purchase != null) updated = updated.withPurchaseRate(purchase);
+        final other = LedgerEngine(data.entries.where((e) => e.id != id));
+        other.validate(
+          updated,
+          products: data.products,
+          people: data.people,
+          godams: data.godams,
+          checkStock: false,
+        );
+        await _put('entries', id, updated.toJson());
+      });
   Future<void> voidEntry(String id) => db.transaction(() async {
     requireOwner();
     final data = await snapshot();

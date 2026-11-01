@@ -76,7 +76,7 @@ class ReportSummary {
     expenses = ledger.expenses(entries);
     netProfit = grossProfit - expenses;
     cropProfit = ledger.profit(entries.where((e) => e.kind == EntryKind.crop));
-    pending = entries.where((e) => e.ratePending).length;
+    pending = entries.where((e) => e.hasPendingRate).length;
     receivable = 0;
     payable = 0;
     for (final person in data.people) {

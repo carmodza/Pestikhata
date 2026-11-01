@@ -7,6 +7,7 @@ const enabled=!!process.env.FIRESTORE_EMULATOR_HOST;
 before(async()=>{
   if(!enabled)return;
   env=await initializeTestEnvironment({projectId:'demo-pestikhata',firestore:{rules:fs.readFileSync('../firestore.rules','utf8')}});
+  await env.clearFirestore();
   await env.withSecurityRulesDisabled(async ctx=>{
     const db=ctx.firestore();
     await Promise.all([
@@ -151,4 +152,93 @@ test('rules: diesel can have a pending rate and staff can complete it',{skip:!en
   const ref=doc(env.authenticatedContext('staff').firestore(),'shops/a/records/entries_diesel-rate');
   await assertSucceeds(setDoc(ref,value));
   await assertSucceeds(setDoc(ref,{...value,updatedAt:value.updatedAt+1000,payload:{...value.payload,ratePending:false,ratePaise:25000}}));
+});
+
+async function prepareCropTrade(id, changes = {}) {
+  await prepareRateEntry(`${id}-fixture`);
+  await env.withSecurityRulesDisabled(async ctx=>{
+    await setDoc(doc(ctx.firestore(),'shops/a/records/people_crop-buyer'),person('crop-buyer'));
+  });
+  const value=cropEntry(id);
+  value.payload={...value.payload,cropPricing:true,purchaseRatePending:false,
+    source:{kind:'farmer',id:'rate-farmer'},destination:{kind:'inventory',id:null},
+    quantity:10,unit:'maan',unitFactor:40,ratePaise:280000,purchasePaise:280000,salePaise:0,...changes};
+  return value;
+}
+
+test('rules: crop storage receipt has a purchase price and no sale price',{skip:!enabled},async()=>{
+  const value=await prepareCropTrade('crop-storage');
+  const db=env.authenticatedContext('staff').firestore();
+  await assertSucceeds(setDoc(doc(db,'shops/a/records/entries_crop-storage'),value));
+  for(const [i,changes] of [{salePaise:320000},{ratePaise:320000},{cashPaise:2800001+1},{purchaseRatePending:true}].entries()){
+    const id=`crop-storage-invalid-${i}`;
+    await assertFails(setDoc(doc(db,`shops/a/records/entries_${id}`),{...value,id,payload:{...value.payload,id,...changes}}));
+  }
+});
+
+test('rules: pending crop purchase can be priced by staff without inventing a sale',{skip:!enabled},async()=>{
+  const value=await prepareCropTrade('crop-storage-pending',{ratePending:true,ratePaise:0,purchasePaise:0,cashPaise:100000});
+  const ref=doc(env.authenticatedContext('staff').firestore(),'shops/a/records/entries_crop-storage-pending');
+  await assertSucceeds(setDoc(ref,value));
+  const changed={...value,updatedAt:value.updatedAt+1000,payload:{...value.payload,ratePending:false,ratePaise:280000,purchasePaise:280000}};
+  await assertSucceeds(setDoc(ref,changed));
+  await assertFails(setDoc(ref,{...changed,updatedAt:changed.updatedAt+1000,payload:{...changed.payload,ratePaise:290000,purchasePaise:290000}}));
+});
+
+test('rules: direct crop rates are independent and staff cannot alter the known purchase',{skip:!enabled},async()=>{
+  const value=await prepareCropTrade('crop-direct-pending-sale',{
+    destination:{kind:'farmer',id:'crop-buyer'},ratePending:true,ratePaise:0,salePaise:0,cashPaise:100000});
+  const ref=doc(env.authenticatedContext('staff').firestore(),'shops/a/records/entries_crop-direct-pending-sale');
+  await assertSucceeds(setDoc(ref,value));
+  const changed={...value,updatedAt:value.updatedAt+1000,payload:{...value.payload,ratePending:false,ratePaise:320000,salePaise:320000}};
+  await assertFails(setDoc(ref,{...changed,payload:{...changed.payload,purchasePaise:100}}));
+  await assertSucceeds(setDoc(ref,changed));
+  await assertFails(setDoc(ref,{...changed,updatedAt:changed.updatedAt+1000,payload:{...changed.payload,voided:true}}));
+  await assertSucceeds(setDoc(doc(env.authenticatedContext('owner').firestore(),'shops/a/records/entries_crop-direct-pending-sale'),
+    {...changed,updatedAt:changed.updatedAt+1000,payload:{...changed.payload,voided:true}}));
+});
+
+test('rules: purchase may be pending while crop sale is priced; staff can complete only purchase',{skip:!enabled},async()=>{
+  const value=await prepareCropTrade('crop-direct-pending-buy',{
+    destination:{kind:'farmer',id:'crop-buyer'},purchaseRatePending:true,purchasePaise:0,ratePaise:320000,salePaise:320000});
+  const ref=doc(env.authenticatedContext('staff').firestore(),'shops/a/records/entries_crop-direct-pending-buy');
+  await assertSucceeds(setDoc(ref,value));
+  const changed={...value,updatedAt:value.updatedAt+1000,payload:{...value.payload,purchaseRatePending:false,purchasePaise:280000}};
+  await assertFails(setDoc(ref,{...changed,payload:{...changed.payload,ratePaise:330000,salePaise:330000}}));
+  await assertSucceeds(setDoc(ref,changed));
+});
+
+test('rules: crop cash must fit both priced sides and stock/parties remain immutable',{skip:!enabled},async()=>{
+  const value=await prepareCropTrade('crop-direct-priced',{
+    destination:{kind:'farmer',id:'crop-buyer'},ratePaise:320000,salePaise:320000,cashPaise:100000});
+  const db=env.authenticatedContext('owner').firestore(),ref=doc(db,'shops/a/records/entries_crop-direct-priced');
+  await assertSucceeds(setDoc(ref,value));
+  for(const changes of [{quantity:11},{cropPricing:false},{ratePending:true,ratePaise:0},{source:{kind:'inventory',id:null}}]){
+    await assertFails(setDoc(ref,{...value,updatedAt:value.updatedAt+1000,payload:{...value.payload,...changes}}));
+  }
+  const id='crop-direct-excess-cash';
+  await assertFails(setDoc(doc(db,`shops/a/records/entries_${id}`),{...value,id,payload:{...value.payload,id,cashPaise:3000000}}));
+  await assertSucceeds(setDoc(ref,{...value,updatedAt:value.updatedAt+1000,
+    payload:{...value.payload,purchasePaise:270000,ratePaise:330000,salePaise:330000}}));
+});
+
+test('rules: staff can price both pending crop sides in one write',{skip:!enabled},async()=>{
+  const value=await prepareCropTrade('crop-both-pending',{
+    destination:{kind:'farmer',id:'crop-buyer'},ratePending:true,purchaseRatePending:true,
+    ratePaise:0,purchasePaise:0,salePaise:0,cashPaise:100000});
+  const ref=doc(env.authenticatedContext('staff').firestore(),'shops/a/records/entries_crop-both-pending');
+  await assertSucceeds(setDoc(ref,value));
+  await assertSucceeds(setDoc(ref,{...value,updatedAt:value.updatedAt+1000,payload:{...value.payload,
+    ratePending:false,purchaseRatePending:false,ratePaise:320000,salePaise:320000,purchasePaise:280000}}));
+});
+
+test('rules: resolving a stored crop sale cannot change its saved purchase cost',{skip:!enabled},async()=>{
+  const value=await prepareCropTrade('crop-stored-sale-pending',{
+    source:{kind:'inventory',id:null},destination:{kind:'farmer',id:'crop-buyer'},
+    ratePending:true,ratePaise:0,salePaise:0});
+  const ref=doc(env.authenticatedContext('staff').firestore(),'shops/a/records/entries_crop-stored-sale-pending');
+  await assertSucceeds(setDoc(ref,value));
+  const changed={...value,updatedAt:value.updatedAt+1000,payload:{...value.payload,ratePending:false,ratePaise:320000,salePaise:320000}};
+  await assertFails(setDoc(ref,{...changed,payload:{...changed.payload,purchasePaise:1}}));
+  await assertSucceeds(setDoc(ref,changed));
 });

@@ -1,17 +1,17 @@
 # Verification and release status
 
-Validated on 30 October 2026 in this Windows workspace using Flutter 3.47.8 / Dart 3.13.7 and Chrome 156. Backend compilation and unit tests ran with Node 24; deployment and CI use Node 22.
+Validated on 1 November 2026 in this Windows workspace using Flutter 3.47.8 / Dart 3.13.7 and Chrome 156. Backend compilation and unit tests ran with Node 24; deployment and CI use Node 22.
 
 | Check | Result |
 |---|---|
 | `tool\flutter.cmd analyze --no-pub` | Passed, no issues |
-| `tool\flutter.cmd test --timeout 90s` | 63 tests passed |
-| `node tool/check_resources.mjs` | 293 matching English/Roman Urdu strings, JSON, SQLite WASM and icons passed |
+| `tool\flutter.cmd test --timeout 90s` | 75 tests passed |
+| `node tool/check_resources.mjs` | 313 matching English/Roman Urdu strings, JSON, SQLite WASM and icons passed |
 | Backend helper tests | TypeScript compiled; 3 security helper tests passed; rules run separately in the emulator |
 | `flutter build web --release --no-web-resources-cdn` | Passed |
 | Generated offline service worker | Passed; caches local application resources |
-| Chrome smoke test | Existing stock/module coverage retained; focused crop rates, immediate source picker, pending-payment mobile screen and offline SQLite reload passed |
-| Firestore emulator tests | 13 passed, none skipped; tenant/role protections, direct trades, optional expiry, immutable allocations and pending diesel rates |
+| Chrome smoke test | Existing stock/module coverage retained; focused crop purchase form, immediate source picker, pending-payment mobile screen and offline SQLite reload passed |
+| Firestore emulator tests | 20 passed, none skipped; tenant/role protections, independent crop prices and pending sides, saved sale-cost protection, direct trades, optional expiry, immutable allocations and pending diesel rates |
 
 Tests cover exact paisa calculations, supplier/farmer balances, partial cash settlement, pending-rate completion, units, exact batch availability, godam transfers, immutable historical rates, owner/staff permissions, deterministic LWW, atomic outbox writes, stale acknowledgements, REST version-precondition retries and paginated pulls. An on-disk restart test verifies unsynced records, cash, khata and cursor persistence. Widget tests save cash and product entries through the center Entry control. PDF tests export 1,400 rows across more than twenty pages with bundled fonts and no network. Mock HTTP tests verify authenticated cloud backup upload/restore, tenant rejection and paginated archive listing; these do not replace a live Storage integration test.
 
@@ -19,7 +19,7 @@ The project includes fixes for product-selection price fields overwriting each o
 
 Entry tests also cover generated receipt batches, optional expiry, automatic multi-lot allocation, expired-stock exclusion for automatic sales, godam transfers and returns, direct supplier/farmer and supplier/supplier khatas, gross cash-in/out with zero net direct cash, pending direct rates, atomic shortage rejection, allocation validation and backup replay. Widget tests save sale/receipt/direct entries and verify green/red/blue icons in both themes.
 
-Payment-summary tests verify partial settlements, oldest-open-bill matching, cash advances, supplier payables, opposite payment directions and unpriced/voided bills. UI tests cover immediate person/godam lists, blank-amount pending-payment forms, crop purchase/sale price linkage, and crop/diesel pending rates completed from Home. Shared entry rows and statement exports include products, quantities, units and rates.
+Payment-summary tests verify partial settlements, oldest-open-bill matching, cash advances, supplier payables, opposite payment directions and unpriced/voided bills. UI tests cover immediate person/godam lists, blank-amount pending-payment forms, purchase-only crop receipts, sale-only crop stock sales, direct crop trades with independent rates, and crop/diesel pending rates completed from Home. Crop accounting tests use the rice example: 10 maan at Rs2,800 adds Rs28,000 farmer payable and 400 kg stock with no sale price; a later sale bills only its buyer. Tests also cover independent pending sides, staff permissions, atomic dual-rate completion, cash limits on both sides, manual unit conversion and unchanged legacy bills. Shared entry rows and statement exports use the selected person's rate and include products, quantities, units and rates.
 
 ## Reproduce
 

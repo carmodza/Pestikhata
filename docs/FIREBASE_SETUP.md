@@ -93,7 +93,7 @@ Hosting rewrites deep links to `index.html`, serves WASM with the correct MIME t
 
 ## 6. Verify before live use
 
-Deploy the current `firestore.rules` with this client version. Older deployed rules reject direct people-to-people entries, optional receipt expiry, immutable stock allocations and pending diesel rates. Use `firebase deploy --only firestore:rules` when updating an already configured project.
+Deploy the current `firestore.rules` with this client version. Older deployed rules reject direct people-to-people entries, optional receipt expiry, immutable stock allocations, pending diesel rates and the new independent crop pricing fields (`cropPricing`, `purchaseRatePending`). Rules preserve finalized prices while allowing staff to complete either pending side. Update all clients together when enabling this crop-entry version. Use `firebase deploy --only firestore:rules` when updating an already configured project.
 
 Run two separate signed-in devices against a test project. Verify real SMS, numeric email, Google on each target platform, owner creation, staff invite/revocation, tenant isolation, offline saves/restart, conflicting rate edits, synchronization after reconnect and local/cloud restore. Then configure app signing, provider consent/domain verification, operational backups and monitoring before onboarding real shops.
 

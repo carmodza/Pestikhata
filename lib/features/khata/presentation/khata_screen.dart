@@ -118,8 +118,8 @@ class PersonScreen extends ConsumerWidget {
         final e = movement.entry;
         return [
           context.day(e.date),
-          '${entryTitle(context, data, e)}${e.isRateBearing ? '\n${entryQuantity(context, e)}' : ''}',
-          e.ratePending
+          '${entryTitle(context, data, e)}${e.isRateBearing ? '\n${entryQuantity(context, e, personId: id)}' : ''}',
+          e.ratePendingFor(id)
               ? '${context.tr('ratePending')} (${context.money(movement.delta)})'
               : context.money(movement.delta),
           context.money(movement.balance),
@@ -222,6 +222,7 @@ class PersonScreen extends ConsumerWidget {
                       (e) => EntryTile(
                         entry: e,
                         data: data,
+                        personId: id,
                         onTap: () => context.push('/entry-detail/${e.id}'),
                       ),
                     )

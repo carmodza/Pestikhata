@@ -171,6 +171,8 @@ class JournalEntry {
     this.cashPaise = 0,
     this.amountPaise = 0,
     this.ratePending = false,
+    this.cropPricing = false,
+    this.purchaseRatePending = false,
     this.expenseCategory = 'other',
     this.createdBy = '',
     this.createdAt = 0,
@@ -187,6 +189,10 @@ class JournalEntry {
   final double quantity, unitFactor;
   final int ratePaise, purchasePaise, salePaise, cashPaise, amountPaise;
   final bool ratePending, voided;
+
+  /// New crop bills price the seller and buyer independently. Absent on legacy
+  /// records so that upgrading never rewrites an existing person's balance.
+  final bool cropPricing, purchaseRatePending;
   final List<StockAllocation> allocations;
   bool get hasStock => kind == EntryKind.product || kind == EntryKind.crop;
   bool get isRateBearing => hasStock || kind == EntryKind.diesel;
@@ -194,6 +200,19 @@ class JournalEntry {
   bool get isDirect => source.person && destination.person;
   bool get isStockReceipt =>
       hasStock && !source.internal && destination.internal;
+  bool get hasCropPurchase => cropPricing && !source.internal && !isTransfer;
+  bool get hasCropSale => cropPricing && !destination.internal && !isTransfer;
+  bool get hasPendingRate => ratePending || purchaseRatePending;
+  bool get cropPurchasePending =>
+      hasCropPurchase && (isDirect ? purchaseRatePending : ratePending);
+  int get purchaseTotalPaise => hasCropPurchase
+      ? (cropPurchasePending ? 0 : multiplyMoney(quantity, purchasePaise))
+      : totalPaise;
+  int get purchaseCreditPaise => purchaseTotalPaise - cashPaise;
+  bool ratePendingFor(String personId) =>
+      hasCropPurchase && source.id == personId
+      ? cropPurchasePending
+      : ratePending;
   EntryDirection get direction => isDirect
       ? EntryDirection.direct
       : isTransfer
@@ -231,7 +250,7 @@ class JournalEntry {
       hasStock &&
       (source.internal || isDirect) &&
       !destination.internal &&
-      destination.kind != PartyKind.supplier;
+      (cropPricing || destination.kind != PartyKind.supplier);
   Json toJson() => {
     'id': id,
     'kind': kind.name,
@@ -252,6 +271,10 @@ class JournalEntry {
     'cashPaise': cashPaise,
     'amountPaise': amountPaise,
     'ratePending': ratePending,
+    if (cropPricing) ...{
+      'cropPricing': true,
+      'purchaseRatePending': purchaseRatePending,
+    },
     'expenseCategory': expenseCategory,
     'createdBy': createdBy,
     'createdAt': createdAt,
@@ -279,6 +302,8 @@ class JournalEntry {
     cashPaise: j['cashPaise'],
     amountPaise: j['amountPaise'],
     ratePending: j['ratePending'],
+    cropPricing: j['cropPricing'] ?? false,
+    purchaseRatePending: j['purchaseRatePending'] ?? false,
     expenseCategory: j['expenseCategory'],
     createdBy: j['createdBy'] ?? '',
     createdAt: j['createdAt'] ?? 0,
@@ -291,8 +316,17 @@ class JournalEntry {
     final json = toJson()
       ..['ratePaise'] = rate
       ..['ratePending'] = false;
+    if (cropPricing) {
+      json[hasCropSale ? 'salePaise' : 'purchasePaise'] = rate;
+    }
     return JournalEntry.fromJson(json);
   }
+
+  JournalEntry withPurchaseRate(int rate) => JournalEntry.fromJson(
+    toJson()
+      ..['purchasePaise'] = rate
+      ..['purchaseRatePending'] = false,
+  );
 
   JournalEntry voidEntry() =>
       JournalEntry.fromJson(toJson()..['voided'] = true);

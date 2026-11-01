@@ -120,7 +120,14 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
     keyboardType: numeric
         ? const TextInputType.numberWithOptions(decimal: true)
         : TextInputType.text,
-    decoration: InputDecoration(labelText: context.tr(label)),
+    decoration: InputDecoration(
+      labelText: context.tr(label),
+      helperText:
+          widget.kind == EntryKind.crop &&
+              (name == 'purchase' || name == 'sale')
+          ? '${context.tr('rateUnit')} ${context.tr(input.unit)}'
+          : null,
+    ),
     minLines: name == 'note' ? 2 : 1,
     maxLines: name == 'note' ? 3 : 1,
     onChanged: name == 'purchase' || name == 'sale'
@@ -170,7 +177,11 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          context.tr(source ? 'source' : 'destination'),
+          context.tr(
+            widget.kind == EntryKind.crop
+                ? (source ? 'cropSource' : 'cropDestination')
+                : (source ? 'source' : 'destination'),
+          ),
           style: context.fonts.titleSmall,
         ),
         const SizedBox(height: 8),
@@ -453,8 +464,7 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
                                   )
                                   .toList(),
                               onChanged: (value) => setState(() {
-                                input.unit = value!;
-                                EntryService.applyUnit(input);
+                                EntryService.changeUnit(input, value!);
                                 _applyPrices();
                                 dirty = true;
                               }),
@@ -468,8 +478,78 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
               if (widget.kind == EntryKind.cash ||
                   widget.kind == EntryKind.other)
                 field('amount', 'amount'),
-              if (input.isDirect)
+              if (input.isDirect && widget.kind != EntryKind.crop)
                 GlassCard(child: Text(context.tr('directEntryHelp'))),
+              if (widget.kind == EntryKind.crop && !input.isTransfer)
+                GlassCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        context.tr(
+                          input.isDirect
+                              ? 'cropDirectHelp'
+                              : input.cropPurchase
+                              ? 'cropPurchaseHelp'
+                              : 'cropSaleHelp',
+                        ),
+                      ),
+                      if (input.cropPurchase) ...[
+                        SwitchListTile.adaptive(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(
+                            context.tr(
+                              input.isDirect
+                                  ? 'purchaseRateLater'
+                                  : 'rateLater',
+                            ),
+                          ),
+                          value: input.cropPurchasePending,
+                          onChanged: (value) => setState(() {
+                            if (input.isDirect) {
+                              input.purchaseRatePending = value;
+                            } else {
+                              input.ratePending = value;
+                            }
+                            dirty = true;
+                          }),
+                        ),
+                        if (!input.cropPurchasePending)
+                          field('purchase', 'purchasePrice'),
+                      ],
+                      if (input.cropSale) ...[
+                        SwitchListTile.adaptive(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(
+                            context.tr(
+                              input.isDirect ? 'saleRateLater' : 'rateLater',
+                            ),
+                          ),
+                          value: input.ratePending,
+                          onChanged: (value) => setState(() {
+                            input.ratePending = value;
+                            dirty = true;
+                          }),
+                        ),
+                        if (!input.ratePending) field('sale', 'salePrice'),
+                      ],
+                      const SizedBox(height: 12),
+                      field(
+                        'cash',
+                        input.isDirect
+                            ? 'cashThroughShop'
+                            : input.cropPurchase
+                            ? 'paidNow'
+                            : 'receivedNow',
+                      ),
+                      if (input.isDirect)
+                        Text(
+                          context.tr('cropCashHelp'),
+                          style: context.fonts.bodySmall,
+                        ),
+                    ],
+                  ),
+                ),
               if (widget.kind == EntryKind.other) ...[
                 field('title', 'title', numeric: false),
                 DropdownButtonFormField<String>(
@@ -493,6 +573,7 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
               ],
               if (widget.kind == EntryKind.diesel) field('quantity', 'liters'),
               if (input.isRateBearing &&
+                  widget.kind != EntryKind.crop &&
                   !(input.source.internal && input.destination.internal))
                 SwitchListTile.adaptive(
                   contentPadding: EdgeInsets.zero,
@@ -504,17 +585,12 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
                     dirty = true;
                   }),
                 ),
-              if (widget.kind != EntryKind.cash &&
+              if (widget.kind != EntryKind.crop &&
+                  widget.kind != EntryKind.cash &&
                   widget.kind != EntryKind.other &&
                   !(input.source.internal && input.destination.internal)) ...[
                 if (!input.ratePending) field('rate', 'rate'),
-                if (stockEntry &&
-                    (!input.isDirect || widget.kind == EntryKind.crop)) ...[
-                  if (widget.kind == EntryKind.crop)
-                    Text(
-                      context.tr('cropRates'),
-                      style: context.fonts.titleMedium,
-                    ),
+                if (stockEntry && !input.isDirect) ...[
                   Row(
                     children: [
                       Expanded(child: field('purchase', 'purchasePrice')),
@@ -530,38 +606,89 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
                 widget.kind == EntryKind.diesel ? 'vehicleNote' : 'note',
                 numeric: false,
               ),
-              GlassCard(
-                tint: context.colors.primaryContainer,
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(context.tr('total')),
-                        Text(
+              if (widget.kind == EntryKind.crop)
+                GlassCard(
+                  tint: context.colors.primaryContainer,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (input.isTransfer) Text(context.tr('stockTransfer')),
+                      if (input.cropPurchase) ...[
+                        _summaryRow(
+                          'purchaseTotal',
+                          input.cropPurchasePending
+                              ? context.tr('ratePending')
+                              : context.money(preview?.purchaseTotalPaise ?? 0),
+                        ),
+                        if (input.source.person)
+                          _summaryRow(
+                            input.cropPurchasePending
+                                ? 'balanceSoFar'
+                                : (preview?.purchaseCreditPaise ?? 0) < 0
+                                ? 'receivable'
+                                : 'payable',
+                            '${endpointLabel(context, data, input.source)}: ${context.money((preview?.purchaseCreditPaise ?? 0).abs())}',
+                          ),
+                      ],
+                      if (input.isDirect) const Divider(height: 24),
+                      if (input.cropSale) ...[
+                        _summaryRow(
+                          'saleTotal',
                           input.ratePending
                               ? context.tr('ratePending')
                               : context.money(preview?.totalPaise ?? 0),
-                          style: context.fonts.titleLarge,
                         ),
+                        if (input.destination.person)
+                          _summaryRow(
+                            input.ratePending
+                                ? 'balanceSoFar'
+                                : (preview?.creditPaise ?? 0) < 0
+                                ? 'payable'
+                                : 'receivable',
+                            '${endpointLabel(context, data, input.destination)}: ${context.money((preview?.creditPaise ?? 0).abs())}',
+                          ),
                       ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(context.tr('udhar')),
+                      if (input.ratePending || input.purchaseRatePending)
                         Text(
-                          context.money(preview?.creditPaise ?? 0),
-                          style: context.fonts.titleMedium,
+                          context.tr('pendingPaymentRatesHelp'),
+                          style: context.fonts.bodySmall,
                         ),
-                      ],
-                    ),
-                    if (input.source.internal && input.destination.internal)
-                      Text(context.tr('stockTransfer')),
-                  ],
+                    ],
+                  ),
+                )
+              else
+                GlassCard(
+                  tint: context.colors.primaryContainer,
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(context.tr('total')),
+                          Text(
+                            input.ratePending
+                                ? context.tr('ratePending')
+                                : context.money(preview?.totalPaise ?? 0),
+                            style: context.fonts.titleLarge,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(context.tr('udhar')),
+                          Text(
+                            context.money(preview?.creditPaise ?? 0),
+                            style: context.fonts.titleMedium,
+                          ),
+                        ],
+                      ),
+                      if (input.source.internal && input.destination.internal)
+                        Text(context.tr('stockTransfer')),
+                    ],
+                  ),
                 ),
-              ),
               ActionButton(
                 label: context.tr('saveEntry'),
                 icon: Icons.save_outlined,
@@ -581,6 +708,23 @@ class _EntryScreenState extends ConsumerState<EntryScreen> {
           );
         },
       ),
+    ),
+  );
+
+  Widget _summaryRow(String label, String value) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 6),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(child: Text(context.tr(label))),
+        Expanded(
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            style: context.fonts.titleMedium,
+          ),
+        ),
+      ],
     ),
   );
 }

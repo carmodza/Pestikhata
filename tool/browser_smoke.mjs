@@ -81,7 +81,8 @@ try{
   const cropName=(await names()).find(n=>n.includes('Wheat'));
   await browser.clickText(cropName);
   await browser.send('Input.dispatchMouseEvent',{type:'mouseWheel',x:200,y:600,deltaX:0,deltaY:500});await pause(600);
-  await expectText('Crop purchase & sale rates');await expectText('Rate later');
+  await expectText('Purchase price (Rs / unit)');await expectText('Rate later');await expectText('Paid now (Rs)');
+  if((await names()).some(n=>n.includes('Sale price (Rs / unit)')||n==='Rate (Rs / unit)'))throw Error('Storage receipt still asks for a sale or duplicate billed rate');
   await browser.screenshot('.tooling/previews/crop-rates-mobile.png');
   await load('Page.navigate',{url:browser.url});await ready();
   await browser.clickText('Entry');await expectText('New entry');await browser.screenshot('.tooling/previews/entry-dial-mobile.png');
