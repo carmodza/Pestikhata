@@ -21,3 +21,5 @@ ui-debug.log
 **/service-account*.json
 **/GoogleService-Info.plist
 **/google-services.json
+# Widget Preview related
+.widget_preview/
