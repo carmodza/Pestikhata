@@ -23,3 +23,5 @@ ui-debug.log
 **/google-services.json
 # Widget Preview related
 .widget_preview/
+
+.vercel
